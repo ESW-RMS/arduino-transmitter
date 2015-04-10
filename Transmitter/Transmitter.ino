@@ -7,6 +7,7 @@
  *
  * Platform: Arduino Uno
  * Authors: Evan Giarta, egiarta1671
+ *          Evelyn Li, 0evelyn
  *
  * Version: V1, 2015.04.01
  * Maiden code to test Arduino's sampling capability
@@ -37,6 +38,9 @@ void setup() {
 }
 
 void loop() {
+}
+
+void printSensorSample(){
   if (TMRArd_IsTimerExpired(0)) {
     //Serial.println(analogRead(A3));
     for (register int i = A0; i < A3; ++i) {
