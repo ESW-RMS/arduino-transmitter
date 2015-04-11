@@ -1,0 +1,42 @@
+ESW RMS Transmitter initializing...
+0AT
+COMMAND TIMEOUT
+A/
+ COMMAND TIMEOUT
+A/
+ÿÿÿÿÿÿÿÿCOMMAND TIMEOUT
+A/
+
+OK
+1AT+CLTS=1
+
++CME ERROR: SIM not inserted
+A/
+
++CME ERROR: SIM not inserted
+A/
+
++CME ERROR: operation not allowed
+A/
+
+OK
+2AT+CFUN=0
+
+OK
+
++CPIN: NOT READY
+3AT+CFUN=1
+
+OK
+4AT+CCLK?
+
++CCLK: "15/04/10,17:56:08-28"
+
+OK
+Initialization complete!
+
++PACSP: 1
+
+*PSUTTZ: 2015, 4, 11, 0, 56, 15, "-28", 1
+
+DST: 1
