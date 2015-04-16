@@ -8,7 +8,7 @@ void setup() {
   TCCR1B = 0;
   TCNT1 = 0;
   
-  TCCR1A = 62499; // for 0.25 Hz (16e6)/(0.25*1024) - 1= clk_spd/(des_frq*pre_scale) - 1
+  OCR1A = 62499; // for 0.25 Hz (16e6)/(0.25*1024) - 1= clk_spd/(des_frq*pre_scale) - 1
   TCCR1B |= (1 << WGM12); // turn on CTC mode
   TCCR1B |= (1 << CS12) | (1 << CS10); // set 1024 prescale factor
   TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
@@ -26,7 +26,7 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
     digitalWrite(13,digitalRead(13) == LOW ? HIGH : LOW);
     prev = curr;
     curr = micros();
-    Serial.println(curr - prev);
+    //Serial.println(curr - prev);
 //    count = 0;
 //  }
 }
