@@ -21,14 +21,15 @@ char count = 0;
 unsigned long prev = 0;
 unsigned long curr = 0;
 ISR (TIMER1_COMPA_vect) { // timer one interrupt function
-//  count++;
-//  if (count >=8) {
+  prev = curr;
+  curr = millis();
+  Serial.println(curr - prev);
+  count++;
+  if (count >=8) {
     digitalWrite(13,digitalRead(13) == LOW ? HIGH : LOW);
-    prev = curr;
-    curr = micros();
-    //Serial.println(curr - prev);
-//    count = 0;
-//  }
+    Serial.println("Send text here.");
+    count = 0;
+  }
 }
 
 void loop() {}

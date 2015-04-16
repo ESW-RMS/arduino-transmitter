@@ -20,9 +20,8 @@
 #include <String.h>
 #include <Timers.h>
 
+#define BAUD_RATE 19200
 #define PRINT_TIME 1000
-#define ANALOG_PIN_OFFSET 3
-#define PHASE_NUMBER_OFFSET 13
 #define STANDARD_DELAY 1500
 #define NUM_INIT_COMMANDS 5
 #define INIT_SUCCESS_CODE 0
@@ -30,60 +29,82 @@
 #define INIT_ERROR_CODE -2
 #define INIT_TIMEOUT_CODE -3
 #define INIT_TIME 2000
+#define COMPARE_MATCH_REGISTER 62499
+#define ANALOG_PIN_OFFSET 3
+#define PHASE_NUMBER_OFFSET 13
+#define OUTPUT_PIN 13
+#define SMS_SEND_PERIOD 32 //this will be 3600 (1 hour)
+#define INTERRUPT_PERIOD 4
+#define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD //remove this when testing is done
 
 SoftwareSerial shieldGSM(7,8);
 
 boolean flagSendSMS;
 
 void setup() {
-  Serial.begin(19200);
-  //shieldGSM = new SoftwareSerial(7,8);
-  shieldGSM.begin(19200);    // the GPRS baud rate
+  Serial.begin(BAUD_RATE);
+  shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
   Serial.println("ESW RMS Transmitter initializing...");
+  
   flagSendSMS = false;
   delay(STANDARD_DELAY);
-//  shieldGSM.println("AT");
-//  delay(STANDARD_DELAY);
-//  printShieldGSMResponse();
-//  shieldGSM.println("AT+CLTS=1");
-//  delay(STANDARD_DELAY);
-//  printShieldGSMResponse();
-//  shieldGSM.println("AT+CFUN=0");
-//  delay(STANDARD_DELAY << 3);
-//  printShieldGSMResponse();
-//  shieldGSM.println("AT+CFUN=1");
-//  delay(STANDARD_DELAY << 3);
-//  printShieldGSMResponse();
-//  shieldGSM.println("AT+CCLK?");
-//  delay(STANDARD_DELAY);
-//  printShieldGSMResponse();
-//  delay(STANDARD_DELAY);
   String setupCommands[NUM_INIT_COMMANDS] = {"AT","AT+CLTS=1","AT+CFUN=0","AT+CFUN=1","AT+CCLK?"};
-  
-  for (int i = 0; i < NUM_INIT_COMMANDS; i++) {
-    int state = INIT_WAIT_CODE; 
-    TMRArd_InitTimer(0, INIT_TIME);
-    Serial.print(i);
-    executeUserCommand(setupCommands[i]);
-    do {
-      state = printShieldGSMResponse();
-      if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
-        state = INIT_TIMEOUT_CODE;
-        TMRArd_InitTimer(0, INIT_TIME);        
-      }
-      switch(state) {
-        case INIT_TIMEOUT_CODE:
-          Serial.println("COMMAND TIMEOUT");  // intentionally no break
-        case INIT_ERROR_CODE:
-          executeUserCommand("A/");
-          break;
-        default:
-          break;
-      }   
-    } while(state != INIT_SUCCESS_CODE);
+  if(shieldGSM.available()){
+    for (int i = 0; i < NUM_INIT_COMMANDS; i++) {
+      int state = INIT_WAIT_CODE; 
+      TMRArd_InitTimer(0, INIT_TIME);
+      Serial.print(i);
+      executeUserCommand(setupCommands[i]);
+      do {
+        state = printShieldGSMResponse();
+        if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
+          state = INIT_TIMEOUT_CODE;
+          TMRArd_InitTimer(0, INIT_TIME);        
+        }
+        switch(state) {
+          case INIT_TIMEOUT_CODE:
+            Serial.println("COMMAND TIMEOUT");  // intentionally no break
+          case INIT_ERROR_CODE:
+            executeUserCommand("A/");
+            break;
+          default:
+            break;
+        }   
+      } while(state != INIT_SUCCESS_CODE);
+    }
   }
-  Serial.println("Initialization complete!");
+  
+  Serial.println("Timer Interrupt initializing...");
+  cli();        // clear interrupt stop interrupts from messing with setup
+  TCCR1A = 0;   // clearing registers 
+  TCCR1B = 0;
+  TCNT1 = 0;
+  
+  OCR1A = COMPARE_MATCH_REGISTER; // for 0.25 Hz (16e6)/(0.25*1024) - 1= clk_spd/(des_frq*pre_scale) - 1
+  TCCR1B |= (1 << WGM12); // turn on CTC mode
+  TCCR1B |= (1 << CS12) | (1 << CS10); // set 1024 prescale factor
+  TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
+  sei();         // set enable interrupt reallow interrupts
+  
+  pinMode(OUTPUT_PIN,OUTPUT);
+  
+  Serial.println("Timer and transmitter initialization complete!");
   TMRArd_InitTimer(0, PRINT_TIME);
+}
+
+char count = 0;
+unsigned long prev = 0;
+unsigned long curr = 0;
+ISR (TIMER1_COMPA_vect) { // timer one interrupt function
+  prev = curr;
+  curr = millis();
+  Serial.println(curr - prev);
+  count++;
+  if (count >=SMS_INTERRUPT_CYCLES) {
+    digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
+    Serial.println("Send text here."); //AT+CMGS to send SMS message
+    count = 0;
+  }
 }
 
 void loop() {
@@ -96,7 +117,7 @@ void printSensorSample(){
     //Serial.println(analogRead(A3));
     for (register int i = A0; i < A3; ++i) {
       Serial.print("PHASE ");
-      Serial.println(i-13);
+      Serial.println(i-PHASE_NUMBER_OFFSET);
       Serial.print("V: ");
       Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
       Serial.print(", I: ");
