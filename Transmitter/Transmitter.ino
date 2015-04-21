@@ -33,9 +33,11 @@
 #define ANALOG_PIN_OFFSET 3
 #define PHASE_NUMBER_OFFSET 13
 #define OUTPUT_PIN 13
-#define SMS_SEND_PERIOD 32 // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 12 // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
+#define NUM_SMS_COMMANDS 4
+#define PHONE_NUMBER "\"+16503020229\""
 
 SoftwareSerial shieldGSM(7,8);
 
@@ -68,6 +70,7 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
   if (count >=SMS_INTERRUPT_CYCLES) {
     digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
     Serial.println("Send text here."); //AT+CMGS to send SMS message
+    Serial.println(sensorDataMessage());
     count = 0;
   }
 }
@@ -87,6 +90,63 @@ void printSensorSample(){
     Serial.println();
     TMRArd_InitTimer(0, PRINT_TIME);
   }
+}
+
+String sensorDataMessage() {
+  String dataMessage;
+  for (register int i = A0; i < A3; ++i) {
+    dataMessage = "PHASE ";
+//    dataMessage += String(i-PHASE_NUMBER_OFFSET);
+    dataMessage += "V: ";
+//    dataMessage += String(analogRead(i + ANALOG_PIN_OFFSET));
+    dataMessage += ", I: ";
+//    dataMessage += String(analogRead(i));
+  }
+  return dataMessage;
+}
+
+// see http://www.geeetech.com/wiki/index.php/Arduino_GPRS_Shield
+void sendSMSMessage(String message) {//  executeUserCommand("AT+CMGF=1\r");
+//  String phoneNumberSet = "AT+CMGS = ";
+//  phoneNumberSet.concat(PHONE_NUMBER);
+  String sendSMSCommands[NUM_SMS_COMMANDS] = {"AT+CMGF=1\r","AT+CMGS = \"+16503020229\"",message}; //,(char)26};
+  if(shieldGSM.available()){
+    for (int i = 0; i < NUM_SMS_COMMANDS; i++) {
+      int state = INIT_WAIT_CODE; 
+      TMRArd_InitTimer(0, INIT_TIME);
+      Serial.print(i);
+      executeUserCommand(sendSMSCommands[i]);
+      do {
+        state = printShieldGSMResponse();
+        if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
+          state = INIT_TIMEOUT_CODE;
+          TMRArd_InitTimer(0, INIT_TIME);        
+        }
+        else if (state != INIT_WAIT_CODE) {
+          TMRArd_InitTimer(0, INIT_TIME);
+        }
+        switch(state) {
+          case INIT_TIMEOUT_CODE:
+            Serial.println("COMMAND TIMEOUT");  // intentionally no break
+          case INIT_ERROR_CODE:
+            executeUserCommand("A/");
+            break;
+          default:
+            break;
+        }   
+      } while(state != INIT_SUCCESS_CODE);
+    }
+  } 
+
+// old hard-coded version
+//  delay(100);
+//  executeUserCommand("AT+CMGS = "+PHONE_NUMBER);
+//  delay(100);
+//  executeUserCommand(message);
+//  delay(100);
+//  executeUserCommand((char)26); //the ASCII code of the ctrl+z is 26
+//  delay(100);
+//  Serial.println();
 }
 
 void executeUserCommand(String buffer) {
@@ -170,6 +230,7 @@ void synchronizeLocalTime() {
       } while(state != INIT_SUCCESS_CODE);
     }
   } 
+  Serial.println("Synchronized to local time.");
 }
 
 void initializeTimerInterrupts() {
@@ -185,5 +246,6 @@ void initializeTimerInterrupts() {
   sei();         // set enable interrupt reallow interrupts
   
   pinMode(OUTPUT_PIN,OUTPUT); 
+  Serial.println("Timer interrupts initialized.");
 }
 
