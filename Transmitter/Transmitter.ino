@@ -29,13 +29,13 @@
 #define INIT_ERROR_CODE -2
 #define INIT_TIMEOUT_CODE -3
 #define INIT_TIME 2000
-#define COMPARE_MATCH_REGISTER 62499
+#define COMPARE_MATCH_REGISTER 62499 // [16 MHz / (1024 * 1/4 Hz) ] - 1
 #define ANALOG_PIN_OFFSET 3
 #define PHASE_NUMBER_OFFSET 13
 #define OUTPUT_PIN 13
-#define SMS_SEND_PERIOD 32 //this will be 3600 (1 hour)
-#define INTERRUPT_PERIOD 4
-#define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD //remove this when testing is done
+#define SMS_SEND_PERIOD 32 // in seconds, this will be 3600 = 1 hour
+#define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
+#define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 
 SoftwareSerial shieldGSM(7,8);
 
@@ -45,51 +45,16 @@ void setup() {
   Serial.begin(BAUD_RATE);
   shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
   Serial.println("ESW RMS Transmitter initializing...");
+  synchronizeLocalTime();
+  initializeTimerInterrupts();
+  Serial.println("Initialization complete!");
   
-  flagSendSMS = false;
-  delay(STANDARD_DELAY);
-  String setupCommands[NUM_INIT_COMMANDS] = {"AT","AT+CLTS=1","AT+CFUN=0","AT+CFUN=1","AT+CCLK?"};
-  if(shieldGSM.available()){
-    for (int i = 0; i < NUM_INIT_COMMANDS; i++) {
-      int state = INIT_WAIT_CODE; 
-      TMRArd_InitTimer(0, INIT_TIME);
-      Serial.print(i);
-      executeUserCommand(setupCommands[i]);
-      do {
-        state = printShieldGSMResponse();
-        if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
-          state = INIT_TIMEOUT_CODE;
-          TMRArd_InitTimer(0, INIT_TIME);        
-        }
-        switch(state) {
-          case INIT_TIMEOUT_CODE:
-            Serial.println("COMMAND TIMEOUT");  // intentionally no break
-          case INIT_ERROR_CODE:
-            executeUserCommand("A/");
-            break;
-          default:
-            break;
-        }   
-      } while(state != INIT_SUCCESS_CODE);
-    }
-  }
-  
-  Serial.println("Timer Interrupt initializing...");
-  cli();        // clear interrupt stop interrupts from messing with setup
-  TCCR1A = 0;   // clearing registers 
-  TCCR1B = 0;
-  TCNT1 = 0;
-  
-  OCR1A = COMPARE_MATCH_REGISTER; // for 0.25 Hz (16e6)/(0.25*1024) - 1= clk_spd/(des_frq*pre_scale) - 1
-  TCCR1B |= (1 << WGM12); // turn on CTC mode
-  TCCR1B |= (1 << CS12) | (1 << CS10); // set 1024 prescale factor
-  TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
-  sei();         // set enable interrupt reallow interrupts
-  
-  pinMode(OUTPUT_PIN,OUTPUT);
-  
-  Serial.println("Timer and transmitter initialization complete!");
-  TMRArd_InitTimer(0, PRINT_TIME);
+  // TMRArd_InitTimer(0, PRINT_TIME);
+}
+
+void loop() {
+  pollUserCommand();
+  printShieldGSMResponse();
 }
 
 char count = 0;
@@ -105,11 +70,6 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
     Serial.println("Send text here."); //AT+CMGS to send SMS message
     count = 0;
   }
-}
-
-void loop() {
-  pollUserCommand();
-  printShieldGSMResponse();
 }
 
 void printSensorSample(){
@@ -180,3 +140,50 @@ int printShieldGSMResponse() {
   Serial.flush();
   return result;
 }
+
+void synchronizeLocalTime() {
+  String setupCommands[NUM_INIT_COMMANDS] = {"AT","AT+CLTS=1","AT+CFUN=0","AT+CFUN=1","AT+CCLK?"};
+  if(shieldGSM.available()){
+    for (int i = 0; i < NUM_INIT_COMMANDS; i++) {
+      int state = INIT_WAIT_CODE; 
+      TMRArd_InitTimer(0, INIT_TIME);
+      Serial.print(i);
+      executeUserCommand(setupCommands[i]);
+      do {
+        state = printShieldGSMResponse();
+        if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
+          state = INIT_TIMEOUT_CODE;
+          TMRArd_InitTimer(0, INIT_TIME);        
+        }
+        else if (state != INIT_WAIT_CODE) {
+          TMRArd_InitTimer(0, INIT_TIME);
+        }
+        switch(state) {
+          case INIT_TIMEOUT_CODE:
+            Serial.println("COMMAND TIMEOUT");  // intentionally no break
+          case INIT_ERROR_CODE:
+            executeUserCommand("A/");
+            break;
+          default:
+            break;
+        }   
+      } while(state != INIT_SUCCESS_CODE);
+    }
+  } 
+}
+
+void initializeTimerInterrupts() {
+  cli();        // clear interrupt stop interrupts from messing with setup
+  TCCR1A = 0;   // clearing registers 
+  TCCR1B = 0;
+  TCNT1 = 0;
+  
+  OCR1A = COMPARE_MATCH_REGISTER; // for 0.25 Hz (16e6)/(0.25*1024) - 1= clk_spd/(des_frq*pre_scale) - 1
+  TCCR1B |= (1 << WGM12); // turn on CTC mode
+  TCCR1B |= (1 << CS12) | (1 << CS10); // set 1024 prescale factor
+  TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
+  sei();         // set enable interrupt reallow interrupts
+  
+  pinMode(OUTPUT_PIN,OUTPUT); 
+}
+
