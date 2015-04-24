@@ -13,6 +13,8 @@
  * Maiden code to test Arduino's sampling capability
  * off the ESW Three Phase Sensor Board v2 with minimal
  * Geetech SIM 900 GPRS GSM Shield interfacing.
+ * 
+ * Timer Interrupt code modified from http://www.instructables.com/id/Arduino-Timer-Interrupts/?ALLSTEPS
  *
  */
 
@@ -33,7 +35,7 @@
 #define ANALOG_PIN_OFFSET 3
 #define PHASE_NUMBER_OFFSET 13
 #define OUTPUT_PIN 13
-#define SMS_SEND_PERIOD 12 // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 4 // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 #define NUM_SMS_COMMANDS 4
@@ -69,40 +71,38 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
   count++;
   if (count >=SMS_INTERRUPT_CYCLES) {
     digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
-    Serial.println("Send text here."); //AT+CMGS to send SMS message
-    Serial.println(sensorDataMessage());
+//    Serial.println("Send text here."); //AT+CMGS to send SMS message
+    for(register int i = A0; i < A3; i++){
+      Serial.print("P");
+      Serial.print(i-PHASE_NUMBER_OFFSET);
+      Serial.print("-V:");
+      Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
+      Serial.print(",I:");
+      Serial.println(analogRead(i));
+
+//        Serial.println("abcdefghijklmnopq"); // Serial can print up to 17 characters
+    }
     count = 0;
   }
 }
 
-void printSensorSample(){
-  if (TMRArd_IsTimerExpired(0)) {
-    //Serial.println(analogRead(A3));
-    for (register int i = A0; i < A3; ++i) {
-      Serial.print("PHASE ");
-      Serial.println(i-PHASE_NUMBER_OFFSET);
-      Serial.print("V: ");
-      Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
-      Serial.print(", I: ");
-      Serial.println(analogRead(i));
-    }
-    
-    Serial.println();
-    TMRArd_InitTimer(0, PRINT_TIME);
-  }
-}
+void sensorDataMessage(int i) { //change to String if using dataMessage
 
-String sensorDataMessage() {
-  String dataMessage;
-  for (register int i = A0; i < A3; ++i) {
-    dataMessage = "PHASE ";
+//  String dataMessage;
+//  dataMessage = "V: ";
+//  dataMessage += String(analogRead(i + ANALOG_PIN_OFFSET));
+//  dataMessage += ", I: ";
+//  dataMessage += String(analogRead(i));
+
+//  for (register int i = A0; i < A3; ++i) {
+//    dataMessage = "PHASE "; // when += is used, string too long; however this only gives last phase
 //    dataMessage += String(i-PHASE_NUMBER_OFFSET);
-    dataMessage += "V: ";
+//    dataMessage += "V: ";
 //    dataMessage += String(analogRead(i + ANALOG_PIN_OFFSET));
-    dataMessage += ", I: ";
+//    dataMessage += ", I: ";
 //    dataMessage += String(analogRead(i));
-  }
-  return dataMessage;
+//  }
+//  return dataMessage;
 }
 
 // see http://www.geeetech.com/wiki/index.php/Arduino_GPRS_Shield
@@ -249,3 +249,19 @@ void initializeTimerInterrupts() {
   Serial.println("Timer interrupts initialized.");
 }
 
+void printSensorSample(){
+  if (TMRArd_IsTimerExpired(0)) {
+    //Serial.println(analogRead(A3));
+    for (register int i = A0; i < A3; ++i) {
+      Serial.print("PHASE ");
+      Serial.println(i-PHASE_NUMBER_OFFSET);
+      Serial.print("V: ");
+      Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
+      Serial.print(", I: ");
+      Serial.println(analogRead(i));
+    }
+    
+    Serial.println();
+    TMRArd_InitTimer(0, PRINT_TIME);
+  }
+}
