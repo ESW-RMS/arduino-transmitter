@@ -61,6 +61,28 @@ void loop() {
   printShieldGSMResponse();
 }
 
+boolean toggle0;
+unsigned int v1max = 0;
+unsigned int v1min = 1024;
+ISR(TIMER0_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8
+  unsigned int v1sample = analogRead(A3);
+  if (v1sample > v1max) {
+    v1max = v1sample;
+  }
+  if (v1sample < v1min) {
+    v1min = v1sample;
+  }
+//generates pulse wave of frequency 2kHz/2 = 1kHz (takes two cycles for full wave- toggle high then toggle low)
+  if (toggle0){
+    digitalWrite(8,HIGH);
+    toggle0 = 0;
+  }
+  else{
+    digitalWrite(8,LOW);
+    toggle0 = 1;
+  }
+}
+
 char count = 0;
 unsigned long prev = 0;
 unsigned long curr = 0;
@@ -72,37 +94,25 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
   if (count >=SMS_INTERRUPT_CYCLES) {
     digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
 //    Serial.println("Send text here."); //AT+CMGS to send SMS message
-    for(register int i = A0; i < A3; i++){
-      Serial.print("P");
-      Serial.print(i-PHASE_NUMBER_OFFSET);
-      Serial.print("-V:");
-      Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
-      Serial.print(",I:");
-      Serial.println(analogRead(i));
+    Serial.println(v1max);
+    Serial.println(v1min);
+
+//    for(register int i = A0; i < A3; i++){
+//      Serial.print("P");
+//      Serial.print(i-PHASE_NUMBER_OFFSET);
+//      Serial.print("-V:");
+//      Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
+//      Serial.print(",I:");
+//      Serial.println(analogRead(i));
 
 //        Serial.println("abcdefghijklmnopq"); // Serial can print up to 17 characters
-    }
+//    }
     count = 0;
   }
 }
 
 void sensorDataMessage(int i) { //change to String if using dataMessage
-
-//  String dataMessage;
-//  dataMessage = "V: ";
-//  dataMessage += String(analogRead(i + ANALOG_PIN_OFFSET));
-//  dataMessage += ", I: ";
-//  dataMessage += String(analogRead(i));
-
-//  for (register int i = A0; i < A3; ++i) {
-//    dataMessage = "PHASE "; // when += is used, string too long; however this only gives last phase
-//    dataMessage += String(i-PHASE_NUMBER_OFFSET);
-//    dataMessage += "V: ";
-//    dataMessage += String(analogRead(i + ANALOG_PIN_OFFSET));
-//    dataMessage += ", I: ";
-//    dataMessage += String(analogRead(i));
-//  }
-//  return dataMessage;
+//code currently in the Timer1 interrupt loop will go here
 }
 
 // see http://www.geeetech.com/wiki/index.php/Arduino_GPRS_Shield
@@ -235,6 +245,20 @@ void synchronizeLocalTime() {
 
 void initializeTimerInterrupts() {
   cli();        // clear interrupt stop interrupts from messing with setup
+  
+  TCCR0A = 0;// set entire TCCR0A register to 0
+  TCCR0B = 0;// same for TCCR0B
+  TCNT0  = 0;//initialize counter value to 0
+
+  // set compare match register for 2khz increments
+  OCR0A = 124;// = (16*10^6) / (2000*64) - 1 (must be <256)
+  // turn on CTC mode
+  TCCR0A |= (1 << WGM01);
+  // Set CS01 and CS00 bits for 64 prescaler
+  TCCR0B |= (1 << CS01) | (1 << CS00);   
+  // enable timer compare interrupt
+  TIMSK0 |= (1 << OCIE0A);
+  
   TCCR1A = 0;   // clearing registers 
   TCCR1B = 0;
   TCNT1 = 0;
@@ -252,16 +276,14 @@ void initializeTimerInterrupts() {
 void printSensorSample(){
   if (TMRArd_IsTimerExpired(0)) {
     //Serial.println(analogRead(A3));
-    for (register int i = A0; i < A3; ++i) {
-      Serial.print("PHASE ");
-      Serial.println(i-PHASE_NUMBER_OFFSET);
-      Serial.print("V: ");
-      Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
-      Serial.print(", I: ");
-      Serial.println(analogRead(i));
-    }
-    
-    Serial.println();
-    TMRArd_InitTimer(0, PRINT_TIME);
+//    for (register int i = A0; i < A3; ++i) {
+//      Serial.print("PHASE ");
+//      Serial.println(i-PHASE_NUMBER_OFFSET);
+//      Serial.print("V: ");
+//      Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
+//      Serial.print(", I: ");
+//      Serial.println(analogRead(i));
+//    }
+        TMRArd_InitTimer(0, PRINT_TIME);
   }
 }
