@@ -168,34 +168,8 @@ void sendSMSMessage(String message) {
 //  executeUserCommand("AT+CMGF=1\r");
   String phoneNumberSet = "AT+CMGS = ";
   phoneNumberSet += PHONE_NUMBER;
-  String sendSMSCommands[NUM_SMS_COMMANDS] = {"AT+CMGF=1\r",phoneNumberSet,message}; //,(char)26};
-  if(shieldGSM.available()){
-    for (int i = 0; i < NUM_SMS_COMMANDS; i++) {
-      int state = INIT_WAIT_CODE; 
-      TMRArd_InitTimer(0, INIT_TIME);
-      Serial.print(i);
-      executeUserCommand(sendSMSCommands[i]);
-      do {
-        state = printShieldGSMResponse();
-        if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
-          state = INIT_TIMEOUT_CODE;
-          TMRArd_InitTimer(0, INIT_TIME);        
-        }
-        else if (state != INIT_WAIT_CODE) {
-          TMRArd_InitTimer(0, INIT_TIME);
-        }
-        switch(state) {
-          case INIT_TIMEOUT_CODE:
-            Serial.println("COMMAND TIMEOUT");  // intentionally no break
-          case INIT_ERROR_CODE:
-            executeUserCommand("A/");
-            break;
-          default:
-            break;
-        }   
-      } while(state != INIT_SUCCESS_CODE);
-    }
-  } 
+  String sendSMSCommands[NUM_SMS_COMMANDS] = {"AT+CMGF=1\r",phoneNumberSet,message};//,(char)26};
+  executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
 
 // old hard-coded version
 //  delay(100);
@@ -263,33 +237,6 @@ int printShieldGSMResponse() {
 void synchronizeLocalTime() {
   String setupCommands[NUM_INIT_COMMANDS] = {"AT","AT+CLTS=1","AT+CFUN=0","AT+CFUN=1","AT+CCLK?"};
   executeATCommands(setupCommands, NUM_INIT_COMMANDS);
-//  if(shieldGSM.available()){
-//    for (int i = 0; i < NUM_INIT_COMMANDS; i++) {
-//      int state = INIT_WAIT_CODE; 
-//      TMRArd_InitTimer(0, INIT_TIME);
-//      Serial.print(i);
-//      executeUserCommand(setupCommands[i]);
-//      do {
-//        state = printShieldGSMResponse();
-//        if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
-//          state = INIT_TIMEOUT_CODE;
-//          TMRArd_InitTimer(0, INIT_TIME);        
-//        }
-//        else if (state != INIT_WAIT_CODE) {
-//          TMRArd_InitTimer(0, INIT_TIME);
-//        }
-//        switch(state) {
-//          case INIT_TIMEOUT_CODE:
-//            Serial.println("COMMAND TIMEOUT");  // intentionally no break
-//          case INIT_ERROR_CODE:
-//            executeUserCommand("A/");
-//            break;
-//          default:
-//            break;
-//        }   
-//      } while(state != INIT_SUCCESS_CODE);
-//    }
-//  } 
   Serial.println("Synchronized to local time.");
 }
 
@@ -318,5 +265,3 @@ void initializeTimerInterrupts() {
   pinMode(OUTPUT_PIN,OUTPUT); 
   Serial.println("Timer interrupts initialized.");
 }
-
-
