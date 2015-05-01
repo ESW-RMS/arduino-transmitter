@@ -19,6 +19,7 @@
  */
 
 #include <SoftwareSerial.h>
+#include <WProgram.h>
 #include <String.h>
 #include <Timers.h>
 
@@ -42,7 +43,6 @@
 #define PHONE_NUMBER "\"+16503020229\""
 
 SoftwareSerial shieldGSM(7,8);
-
 boolean flagSendSMS;
 
 void setup() {
@@ -57,14 +57,47 @@ void setup() {
 }
 
 void loop() {
-  pollUserCommand();
-  printShieldGSMResponse();
+//  pollUserCommand();
+//  printShieldGSMResponse();
+  if(Serial.available()) {
+    Serial.println(millis());
+    Serial.read();
+  }
 }
 
-boolean toggle0;
+char count = 0;
+unsigned long prev1 = 0;
+unsigned long curr1 = 0;
+ISR (TIMER1_COMPA_vect) { // timer one interrupt function
+
+//  verifying the time between interrupts ~ 4 seconds
+//  prev1 = curr1;
+//  curr1 = millis();
+//  Serial.println(curr1 - prev1);
+
+  count++;
+  if (count >=SMS_INTERRUPT_CYCLES) {
+    digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
+//    Serial.println("Send text here."); //AT+CMGS to send SMS message
+    Serial.println(v1max);
+    Serial.println(v1min);
+    Serial.println(curr2 - prev2); //frequency
+
+    for(register int i = A0; i < A3; i++){
+      sensorDataMessage(i);
+    }
+    
+    count = 0;
+  }
+}
+
+boolean toggle2;
+unsigned long prev2;
+unsigned long curr2;
+unsigned int v1sample_prev = 1024;
 unsigned int v1max = 0;
 unsigned int v1min = 1024;
-ISR(TIMER0_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8
+ISR(TIMER2_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8
   unsigned int v1sample = analogRead(A3);
   if (v1sample > v1max) {
     v1max = v1sample;
@@ -72,54 +105,39 @@ ISR(TIMER0_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8
   if (v1sample < v1min) {
     v1min = v1sample;
   }
+  
+  if ((v1sample > 511) && (v1sample_prev < 511)) {
+    prev2 = curr2;
+    curr2 = micros();
+  }
+  v1sample_prev = v1sample;
+
 //generates pulse wave of frequency 2kHz/2 = 1kHz (takes two cycles for full wave- toggle high then toggle low)
-  if (toggle0){
+  if (toggle2){
     digitalWrite(8,HIGH);
-    toggle0 = 0;
+    toggle2 = 0;
   }
   else{
     digitalWrite(8,LOW);
-    toggle0 = 1;
-  }
-}
-
-char count = 0;
-unsigned long prev = 0;
-unsigned long curr = 0;
-ISR (TIMER1_COMPA_vect) { // timer one interrupt function
-  prev = curr;
-  curr = millis();
-  Serial.println(curr - prev);
-  count++;
-  if (count >=SMS_INTERRUPT_CYCLES) {
-    digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
-//    Serial.println("Send text here."); //AT+CMGS to send SMS message
-    Serial.println(v1max);
-    Serial.println(v1min);
-
-//    for(register int i = A0; i < A3; i++){
-//      Serial.print("P");
-//      Serial.print(i-PHASE_NUMBER_OFFSET);
-//      Serial.print("-V:");
-//      Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
-//      Serial.print(",I:");
-//      Serial.println(analogRead(i));
-
-//        Serial.println("abcdefghijklmnopq"); // Serial can print up to 17 characters
-//    }
-    count = 0;
+    toggle2 = 1;
   }
 }
 
 void sensorDataMessage(int i) { //change to String if using dataMessage
-//code currently in the Timer1 interrupt loop will go here
+  Serial.print("P");
+  Serial.print(i-PHASE_NUMBER_OFFSET);
+  Serial.print("-V:");
+  Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
+  Serial.print(",I:");
+  Serial.println(analogRead(i));
 }
 
 // see http://www.geeetech.com/wiki/index.php/Arduino_GPRS_Shield
-void sendSMSMessage(String message) {//  executeUserCommand("AT+CMGF=1\r");
-//  String phoneNumberSet = "AT+CMGS = ";
-//  phoneNumberSet.concat(PHONE_NUMBER);
-  String sendSMSCommands[NUM_SMS_COMMANDS] = {"AT+CMGF=1\r","AT+CMGS = \"+16503020229\"",message}; //,(char)26};
+void sendSMSMessage(String message) {
+//  executeUserCommand("AT+CMGF=1\r");
+  String phoneNumberSet = "AT+CMGS = ";
+  phoneNumberSet += PHONE_NUMBER;
+  String sendSMSCommands[NUM_SMS_COMMANDS] = {"AT+CMGF=1\r",phoneNumberSet,message}; //,(char)26};
   if(shieldGSM.available()){
     for (int i = 0; i < NUM_SMS_COMMANDS; i++) {
       int state = INIT_WAIT_CODE; 
@@ -246,19 +264,6 @@ void synchronizeLocalTime() {
 void initializeTimerInterrupts() {
   cli();        // clear interrupt stop interrupts from messing with setup
   
-  TCCR0A = 0;// set entire TCCR0A register to 0
-  TCCR0B = 0;// same for TCCR0B
-  TCNT0  = 0;//initialize counter value to 0
-
-  // set compare match register for 2khz increments
-  OCR0A = 124;// = (16*10^6) / (2000*64) - 1 (must be <256)
-  // turn on CTC mode
-  TCCR0A |= (1 << WGM01);
-  // Set CS01 and CS00 bits for 64 prescaler
-  TCCR0B |= (1 << CS01) | (1 << CS00);   
-  // enable timer compare interrupt
-  TIMSK0 |= (1 << OCIE0A);
-  
   TCCR1A = 0;   // clearing registers 
   TCCR1B = 0;
   TCNT1 = 0;
@@ -267,6 +272,15 @@ void initializeTimerInterrupts() {
   TCCR1B |= (1 << WGM12); // turn on CTC mode
   TCCR1B |= (1 << CS12) | (1 << CS10); // set 1024 prescale factor
   TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
+
+  TCCR2A = 0;// clear registers
+  TCCR2B = 0;
+  TCNT2  = 0;//initialize counter value to 0
+  OCR2A = 124;// = (16*10^6) / (2000*64) - 1 (must be <256) for 2khz
+  TCCR2A |= (1 << WGM21); // turn on CTC mode
+  TCCR2B |= (1 << CS21) | (1 << CS20);    // Set CS21 bit for 64 prescaler
+  TIMSK2 |= (1 << OCIE2A);   // enable timer compare interrupt
+
   sei();         // set enable interrupt reallow interrupts
   
   pinMode(OUTPUT_PIN,OUTPUT); 
