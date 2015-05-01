@@ -65,31 +65,6 @@ void loop() {
   }
 }
 
-char count = 0;
-unsigned long prev1 = 0;
-unsigned long curr1 = 0;
-ISR (TIMER1_COMPA_vect) { // timer one interrupt function
-
-//  verifying the time between interrupts ~ 4 seconds
-//  prev1 = curr1;
-//  curr1 = millis();
-//  Serial.println(curr1 - prev1);
-
-  count++;
-  if (count >=SMS_INTERRUPT_CYCLES) {
-    digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
-//    Serial.println("Send text here."); //AT+CMGS to send SMS message
-    Serial.println(v1max);
-    Serial.println(v1min);
-    Serial.println(curr2 - prev2); //frequency
-
-    for(register int i = A0; i < A3; i++){
-      sensorDataMessage(i);
-    }
-    
-    count = 0;
-  }
-}
 
 boolean toggle2;
 unsigned long prev2;
@@ -123,6 +98,32 @@ ISR(TIMER2_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8
   }
 }
 
+char count = 0;
+unsigned long prev1 = 0;
+unsigned long curr1 = 0;
+ISR (TIMER1_COMPA_vect) { // timer one interrupt function
+
+//  verifying the time between interrupts ~ 4 seconds
+//  prev1 = curr1;
+//  curr1 = millis();
+//  Serial.println(curr1 - prev1);
+
+  count++;
+  if (count >=SMS_INTERRUPT_CYCLES) {
+    digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
+//    Serial.println("Send text here."); //AT+CMGS to send SMS message
+    Serial.println(v1max);
+    Serial.println(v1min);
+    Serial.println(curr2 - prev2); //frequency
+
+//    for(register int i = A0; i < A3; i++){
+//      sensorDataMessage(i);
+//    }
+    
+    count = 0;
+  }
+}
+
 void sensorDataMessage(int i) { //change to String if using dataMessage
   Serial.print("P");
   Serial.print(i-PHASE_NUMBER_OFFSET);
@@ -130,6 +131,36 @@ void sensorDataMessage(int i) { //change to String if using dataMessage
   Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
   Serial.print(",I:");
   Serial.println(analogRead(i));
+}
+
+void executeATCommands(String *commandsList, int numCommands) {
+    if(shieldGSM.available()){
+    for (int i = 0; i < numCommands; i++) {
+      int state = INIT_WAIT_CODE; 
+      TMRArd_InitTimer(0, INIT_TIME);
+      Serial.print(i);
+      executeUserCommand(commandsList[i]);
+      do {
+        state = printShieldGSMResponse();
+        if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
+          state = INIT_TIMEOUT_CODE;
+          TMRArd_InitTimer(0, INIT_TIME);        
+        }
+        else if (state != INIT_WAIT_CODE) {
+          TMRArd_InitTimer(0, INIT_TIME);
+        }
+        switch(state) {
+          case INIT_TIMEOUT_CODE:
+            Serial.println("COMMAND TIMEOUT");  // intentionally no break
+          case INIT_ERROR_CODE:
+            executeUserCommand("A/");
+            break;
+          default:
+            break;
+        }   
+      } while(state != INIT_SUCCESS_CODE);
+    }
+  }
 }
 
 // see http://www.geeetech.com/wiki/index.php/Arduino_GPRS_Shield
@@ -231,33 +262,34 @@ int printShieldGSMResponse() {
 
 void synchronizeLocalTime() {
   String setupCommands[NUM_INIT_COMMANDS] = {"AT","AT+CLTS=1","AT+CFUN=0","AT+CFUN=1","AT+CCLK?"};
-  if(shieldGSM.available()){
-    for (int i = 0; i < NUM_INIT_COMMANDS; i++) {
-      int state = INIT_WAIT_CODE; 
-      TMRArd_InitTimer(0, INIT_TIME);
-      Serial.print(i);
-      executeUserCommand(setupCommands[i]);
-      do {
-        state = printShieldGSMResponse();
-        if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
-          state = INIT_TIMEOUT_CODE;
-          TMRArd_InitTimer(0, INIT_TIME);        
-        }
-        else if (state != INIT_WAIT_CODE) {
-          TMRArd_InitTimer(0, INIT_TIME);
-        }
-        switch(state) {
-          case INIT_TIMEOUT_CODE:
-            Serial.println("COMMAND TIMEOUT");  // intentionally no break
-          case INIT_ERROR_CODE:
-            executeUserCommand("A/");
-            break;
-          default:
-            break;
-        }   
-      } while(state != INIT_SUCCESS_CODE);
-    }
-  } 
+  executeATCommands(setupCommands, NUM_INIT_COMMANDS);
+//  if(shieldGSM.available()){
+//    for (int i = 0; i < NUM_INIT_COMMANDS; i++) {
+//      int state = INIT_WAIT_CODE; 
+//      TMRArd_InitTimer(0, INIT_TIME);
+//      Serial.print(i);
+//      executeUserCommand(setupCommands[i]);
+//      do {
+//        state = printShieldGSMResponse();
+//        if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
+//          state = INIT_TIMEOUT_CODE;
+//          TMRArd_InitTimer(0, INIT_TIME);        
+//        }
+//        else if (state != INIT_WAIT_CODE) {
+//          TMRArd_InitTimer(0, INIT_TIME);
+//        }
+//        switch(state) {
+//          case INIT_TIMEOUT_CODE:
+//            Serial.println("COMMAND TIMEOUT");  // intentionally no break
+//          case INIT_ERROR_CODE:
+//            executeUserCommand("A/");
+//            break;
+//          default:
+//            break;
+//        }   
+//      } while(state != INIT_SUCCESS_CODE);
+//    }
+//  } 
   Serial.println("Synchronized to local time.");
 }
 
@@ -287,17 +319,4 @@ void initializeTimerInterrupts() {
   Serial.println("Timer interrupts initialized.");
 }
 
-void printSensorSample(){
-  if (TMRArd_IsTimerExpired(0)) {
-    //Serial.println(analogRead(A3));
-//    for (register int i = A0; i < A3; ++i) {
-//      Serial.print("PHASE ");
-//      Serial.println(i-PHASE_NUMBER_OFFSET);
-//      Serial.print("V: ");
-//      Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
-//      Serial.print(", I: ");
-//      Serial.println(analogRead(i));
-//    }
-        TMRArd_InitTimer(0, PRINT_TIME);
-  }
-}
+
