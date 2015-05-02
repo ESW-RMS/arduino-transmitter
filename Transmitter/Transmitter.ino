@@ -40,7 +40,7 @@
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 #define NUM_SMS_COMMANDS 4
-#define PHONE_NUMBER "\"+16503020229\""
+#define PHONE_NUMBER "\"+15594929868\""
 
 SoftwareSerial shieldGSM(7,8);
 boolean flagSendSMS;
@@ -57,12 +57,13 @@ void setup() {
 }
 
 void loop() {
-//  pollUserCommand();
-//  printShieldGSMResponse();
-  if(Serial.available()) {
-    Serial.println(millis());
-    Serial.read();
-  }
+  pollUserCommand();
+  printShieldGSMResponse();
+//  if(Serial.available()) {
+ //   sendSMSMessage("hello world");
+//    Serial.println(millis());
+//    Serial.read();
+//  }
 }
 
 
@@ -168,7 +169,7 @@ void sendSMSMessage(String message) {
 //  executeUserCommand("AT+CMGF=1\r");
   String phoneNumberSet = "AT+CMGS = ";
   phoneNumberSet += PHONE_NUMBER;
-  String sendSMSCommands[NUM_SMS_COMMANDS] = {"AT+CMGF=1\r",phoneNumberSet,message};//,(char)26};
+  String sendSMSCommands[NUM_SMS_COMMANDS] = {"AT+CMGF=1\r",phoneNumberSet,message,String((char)26)};
   executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
 
 // old hard-coded version

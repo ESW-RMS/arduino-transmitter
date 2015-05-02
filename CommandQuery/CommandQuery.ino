@@ -1,6 +1,22 @@
 /* Just some simple code to test simple AT commands */
 
+#include <SoftwareSerial.h>
+#include <WProgram.h>
+#include <String.h>
+#include <Timers.h>
+
+SoftwareSerial shieldGSM(7,8);
+
 #define BAUD_RATE 19200
+#define PRINT_TIME 1000
+#define STANDARD_DELAY 1500
+#define NUM_INIT_COMMANDS 5
+#define INIT_SUCCESS_CODE 0
+#define INIT_WAIT_CODE -1
+#define INIT_ERROR_CODE -2
+#define INIT_TIMEOUT_CODE -3
+
+boolean flagSendSMS = false;
 
 void setup() {
   // put your setup code here, to run once:
