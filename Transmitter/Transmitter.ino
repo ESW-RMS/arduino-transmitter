@@ -45,7 +45,26 @@
 SoftwareSerial shieldGSM(7,8);
 boolean flagSendSMS;
 
+struct quantity {
+  unsigned long min;
+  unsigned long max;
+  unsigned long rms;
+  unsigned long mrrz; // most recent raising over zero
+  unsigned long freq;
+  int port;
+} v1, v2, v3, i1, i2, i3;
+
+v1.port = 3;
+v2.port = 4;
+v3.port = 5;
+i1.port = 0;
+i2.port = 1;
+i3.port = 2;
+
+quantity *sensorInputs[6] = {&v1, &v2, &v3, &i1, &i2, &i3};
+
 void setup() {
+  //powerUp();
   Serial.begin(BAUD_RATE);
   shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
   Serial.println("ESW RMS Transmitter initializing...");
@@ -66,29 +85,27 @@ void loop() {
 //  }
 }
 
-
 boolean toggle2;
-unsigned long prev2;
-unsigned long curr2;
-unsigned int v1sample_prev = 1024;
-unsigned int v1max = 0;
-unsigned int v1min = 1024;
-ISR(TIMER2_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8
-  unsigned int v1sample = analogRead(A3);
-  if (v1sample > v1max) {
-    v1max = v1sample;
-  }
-  if (v1sample < v1min) {
-    v1min = v1sample;
+//unsigned int v1sample_prev = 1024;
+//unsigned int v1max = 0;
+//unsigned int v1min = 1024;
+ISR(TIMER2_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8    
+  for(quantity *q : sensorInputs) {
+    if (analogRead(q->port) > q->max) {
+      q->max = analogRead(q->port);
+    }
+    if (analogRead(q->port) < q->min) {
+      q->min = analogRead(q->port);
+    }
   }
   
   if ((v1sample > 511) && (v1sample_prev < 511)) {
-    prev2 = curr2;
-    curr2 = micros();
+    v1.freq = micros() - v1.mrrz;
+    v1.mrrz = micros();
   }
   v1sample_prev = v1sample;
 
-//generates pulse wave of frequency 2kHz/2 = 1kHz (takes two cycles for full wave- toggle high then toggle low)
+//generates pulse wave of frequency 1kHz/2 = 0.5kHz (takes two cycles for full wave- toggle high then toggle low)
   if (toggle2){
     digitalWrite(8,HIGH);
     toggle2 = 0;
@@ -103,7 +120,6 @@ char count = 0;
 unsigned long prev1 = 0;
 unsigned long curr1 = 0;
 ISR (TIMER1_COMPA_vect) { // timer one interrupt function
-
 //  verifying the time between interrupts ~ 4 seconds
 //  prev1 = curr1;
 //  curr1 = millis();
@@ -115,7 +131,8 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
 //    Serial.println("Send text here."); //AT+CMGS to send SMS message
     Serial.println(v1max);
     Serial.println(v1min);
-    Serial.println(curr2 - prev2); //frequency
+    Serial.println(analogRead(3));
+    Serial.println(v1.freq); //frequency
 
 //    for(register int i = A0; i < A3; i++){
 //      sensorDataMessage(i);
@@ -235,6 +252,16 @@ int printShieldGSMResponse() {
   return result;
 }
 
+void powerUp() {
+ pinMode(9, OUTPUT); 
+ digitalWrite(9,LOW);
+ delay(1000);
+ digitalWrite(9,HIGH);
+ delay(2000);
+ digitalWrite(9,LOW);
+ delay(3000);
+}
+
 void synchronizeLocalTime() {
   String setupCommands[NUM_INIT_COMMANDS] = {"AT","AT+CLTS=1","AT+CFUN=0","AT+CFUN=1","AT+CCLK?"};
   executeATCommands(setupCommands, NUM_INIT_COMMANDS);
@@ -256,7 +283,7 @@ void initializeTimerInterrupts() {
   TCCR2A = 0;// clear registers
   TCCR2B = 0;
   TCNT2  = 0;//initialize counter value to 0
-  OCR2A = 124;// = (16*10^6) / (2000*64) - 1 (must be <256) for 2khz
+  OCR2A = 249;// = (16*10^6) / (1000*64) - 1 (must be <256) for 2khz
   TCCR2A |= (1 << WGM21); // turn on CTC mode
   TCCR2B |= (1 << CS21) | (1 << CS20);    // Set CS21 bit for 64 prescaler
   TIMSK2 |= (1 << OCIE2A);   // enable timer compare interrupt
