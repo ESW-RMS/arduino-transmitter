@@ -54,13 +54,6 @@ struct quantity {
   int port;
 } v1, v2, v3, i1, i2, i3;
 
-v1.port = 3;
-v2.port = 4;
-v3.port = 5;
-i1.port = 0;
-i2.port = 1;
-i3.port = 2;
-
 quantity *sensorInputs[6] = {&v1, &v2, &v3, &i1, &i2, &i3};
 
 void setup() {
@@ -72,6 +65,13 @@ void setup() {
   initializeTimerInterrupts();
   Serial.println("Initialization complete!");
   
+  v1.port = A3;
+  v2.port = A4;
+  v3.port = A5;
+  i1.port = A0;
+  i2.port = A1;
+  i3.port = A2;
+
   // TMRArd_InitTimer(0, PRINT_TIME);
 }
 
@@ -86,11 +86,13 @@ void loop() {
 }
 
 boolean toggle2;
-//unsigned int v1sample_prev = 1024;
-//unsigned int v1max = 0;
-//unsigned int v1min = 1024;
+unsigned int v1sample = analogRead(3);
+unsigned int v1sample_prev = 1024;
+unsigned int v1max = 0;
+unsigned int v1min = 1024;
 ISR(TIMER2_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8    
-  for(quantity *q : sensorInputs) {
+  for(register int i;i<6;i++) {
+    quantity *q = sensorInputs[i];
     if (analogRead(q->port) > q->max) {
       q->max = analogRead(q->port);
     }
