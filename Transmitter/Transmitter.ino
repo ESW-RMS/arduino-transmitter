@@ -31,12 +31,12 @@
 #define INIT_WAIT_CODE -1
 #define INIT_ERROR_CODE -2
 #define INIT_TIMEOUT_CODE -3
-#define INIT_TIME 2000
+#define INIT_TIME 5000
 #define COMPARE_MATCH_REGISTER 62499 // [16 MHz / (1024 * 1/4 Hz) ] - 1
 #define ANALOG_PIN_OFFSET 3
 #define PHASE_NUMBER_OFFSET 13
 #define OUTPUT_PIN 13
-#define SMS_SEND_PERIOD 4 // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 32                                    // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 #define NUM_SMS_COMMANDS 4
@@ -44,6 +44,15 @@
 
 SoftwareSerial shieldGSM(7,8);
 boolean flagSendSMS;
+
+struct ATcommand {
+  String cmd;
+  String resp; 
+  ATcommand(String c, String r) {
+    cmd = c;
+    resp = r;
+  }
+};
 
 struct quantity {
   unsigned long min;
@@ -57,7 +66,6 @@ struct quantity {
 quantity *sensorInputs[6] = {&v1, &v2, &v3, &i1, &i2, &i3};
 
 void setup() {
-  cli();
   //powerUp();
   Serial.begin(BAUD_RATE);
   shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
@@ -74,13 +82,11 @@ void setup() {
   i3.port = A2;
 
   // TMRArd_InitTimer(0, PRINT_TIME);
-
-  sei();
 }
 
 void loop() {
   pollUserCommand();
-  printShieldGSMResponse();
+  printShieldGSMResponse("");
   if(Serial.available()) {
    sendSMSMessage("hello world");
     Serial.println(millis());
@@ -94,15 +100,15 @@ unsigned int v1sample_prev = 1024;
 unsigned int v1max = 0;
 unsigned int v1min = 1024;
 ISR(TIMER2_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8    
-  for(register int i=0;i<6;i++) {
-    quantity *q = sensorInputs[i];
+//  for(register int i=0;i<6;i++) {
+//    quantity *q = sensorInputs[i];
 //    if (analogRead(q->port) > q->max) {
 //      q->max = analogRead(q->port);
 //    }
 //    if (analogRead(q->port) < q->min) {
 //      q->min = analogRead(q->port);
 //    }
-  }
+//  }
   
   if ((v1sample > 511) && (v1sample_prev < 511)) {
     v1.freq = micros() - v1.mrrz;
@@ -133,7 +139,6 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
   count++;
   if (count >=SMS_INTERRUPT_CYCLES) {
     digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
-//    Serial.println("Send text here."); //AT+CMGS to send SMS message
     Serial.println(v1max);
     Serial.println(v1min);
 //    Serial.println(analogRead(3));
@@ -142,7 +147,8 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
 //    for(register int i = A0; i < A3; i++){
 //      sensorDataMessage(i);
 //    }
-    
+
+    sendSMSMessage("timer interrupt message");    
     count = 0;
   }
 }
@@ -156,15 +162,15 @@ void sensorDataMessage(int i) { //change to String if using dataMessage
   Serial.println(analogRead(i));
 }
 
-void executeATCommands(String *commandsList, int numCommands) {
-    if(shieldGSM.available()){
+void executeATCommands(struct ATcommand *commandsList, int numCommands) {
     for (int i = 0; i < numCommands; i++) {
+      struct ATcommand atc = commandsList[i];
       int state = INIT_WAIT_CODE; 
       TMRArd_InitTimer(0, INIT_TIME);
       Serial.print(i);
-      executeUserCommand(commandsList[i]);
+      executeUserCommand(atc.cmd);
       do {
-        state = printShieldGSMResponse();
+        state = printShieldGSMResponse(atc.resp);
         if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
           state = INIT_TIMEOUT_CODE;
           TMRArd_InitTimer(0, INIT_TIME);        
@@ -183,15 +189,14 @@ void executeATCommands(String *commandsList, int numCommands) {
         }   
       } while(state != INIT_SUCCESS_CODE);
     }
-  }
 }
 
 // see http://www.geeetech.com/wiki/index.php/Arduino_GPRS_Shield
 void sendSMSMessage(String message) {
-//  executeUserCommand("AT+CMGF=1\r");
-  String phoneNumberSet = "AT+CMGS = ";
+  String phoneNumberSet = "AT+CMGS=";
   phoneNumberSet += PHONE_NUMBER;
-  String sendSMSCommands[NUM_SMS_COMMANDS] = {"AT+CMGF=1\r",phoneNumberSet,message,String((char)26)};
+  
+  struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = { ATcommand("AT+CMGF=1\r","\r\nOK\r\n") , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,"\r\n> ") , ATcommand(String((char)26),"\r\nOK\r\n") };
   executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
 
 // old hard-coded version
@@ -233,7 +238,7 @@ void pollUserCommand() {
   }
 }
 
-int printShieldGSMResponse() {
+int printShieldGSMResponse(String resp) {
 //  while (shieldGSM.available()) Serial.write(shieldGSM.read());
   int result = INIT_WAIT_CODE;
   String serialOutput;
@@ -249,7 +254,7 @@ int printShieldGSMResponse() {
     if(serialOutput.endsWith(errorString)) {
       result = INIT_ERROR_CODE;
     }
-    if(serialOutput.endsWith(okString)) {
+    if(serialOutput.endsWith(resp)) {
       result = INIT_SUCCESS_CODE;
     }
   }
@@ -268,13 +273,13 @@ void powerUp() {
 }
 
 void synchronizeLocalTime() {
-  String setupCommands[NUM_INIT_COMMANDS] = {"AT","AT+CLTS=1","AT+CFUN=0","AT+CFUN=1","AT+CCLK?"};
+  struct ATcommand setupCommands[NUM_INIT_COMMANDS] = { ATcommand("AT","\r\nOK\r\n") , ATcommand("AT+CLTS=1","\r\nOK\r\n") , ATcommand("AT+CFUN=0","\r\nOK\r\n") , ATcommand("AT+CFUN=1","\r\nOK\r\n") , ATcommand("AT+CCLK?","\r\nOK\r\n") };
   executeATCommands(setupCommands, NUM_INIT_COMMANDS);
   Serial.println("Synchronized to local time.");
 }
 
 void initializeTimerInterrupts() {
-//  cli();        // clear interrupt stop interrupts from messing with setup
+  cli();        // clear interrupt stop interrupts from messing with setup
   
   TCCR1A = 0;   // clearing registers 
   TCCR1B = 0;
@@ -293,7 +298,7 @@ void initializeTimerInterrupts() {
   TCCR2B |= (1 << CS21) | (1 << CS20);    // Set CS21 bit for 64 prescaler
   TIMSK2 |= (1 << OCIE2A);   // enable timer compare interrupt
 
-//  sei();         // set enable interrupt reallow interrupts
+  sei();         // set enable interrupt reallow interrupts
   
   pinMode(OUTPUT_PIN,OUTPUT); 
   Serial.println("Timer interrupts initialized.");
