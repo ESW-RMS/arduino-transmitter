@@ -57,6 +57,7 @@ struct quantity {
 quantity *sensorInputs[6] = {&v1, &v2, &v3, &i1, &i2, &i3};
 
 void setup() {
+  cli();
   //powerUp();
   Serial.begin(BAUD_RATE);
   shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
@@ -73,16 +74,18 @@ void setup() {
   i3.port = A2;
 
   // TMRArd_InitTimer(0, PRINT_TIME);
+
+  sei();
 }
 
 void loop() {
   pollUserCommand();
   printShieldGSMResponse();
-//  if(Serial.available()) {
- //   sendSMSMessage("hello world");
-//    Serial.println(millis());
-//    Serial.read();
-//  }
+  if(Serial.available()) {
+   sendSMSMessage("hello world");
+    Serial.println(millis());
+    Serial.read();
+  }
 }
 
 boolean toggle2;
@@ -91,14 +94,14 @@ unsigned int v1sample_prev = 1024;
 unsigned int v1max = 0;
 unsigned int v1min = 1024;
 ISR(TIMER2_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8    
-  for(register int i;i<6;i++) {
+  for(register int i=0;i<6;i++) {
     quantity *q = sensorInputs[i];
-    if (analogRead(q->port) > q->max) {
-      q->max = analogRead(q->port);
-    }
-    if (analogRead(q->port) < q->min) {
-      q->min = analogRead(q->port);
-    }
+//    if (analogRead(q->port) > q->max) {
+//      q->max = analogRead(q->port);
+//    }
+//    if (analogRead(q->port) < q->min) {
+//      q->min = analogRead(q->port);
+//    }
   }
   
   if ((v1sample > 511) && (v1sample_prev < 511)) {
@@ -133,7 +136,7 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
 //    Serial.println("Send text here."); //AT+CMGS to send SMS message
     Serial.println(v1max);
     Serial.println(v1min);
-    Serial.println(analogRead(3));
+//    Serial.println(analogRead(3));
     Serial.println(v1.freq); //frequency
 
 //    for(register int i = A0; i < A3; i++){
@@ -271,7 +274,7 @@ void synchronizeLocalTime() {
 }
 
 void initializeTimerInterrupts() {
-  cli();        // clear interrupt stop interrupts from messing with setup
+//  cli();        // clear interrupt stop interrupts from messing with setup
   
   TCCR1A = 0;   // clearing registers 
   TCCR1B = 0;
@@ -285,12 +288,12 @@ void initializeTimerInterrupts() {
   TCCR2A = 0;// clear registers
   TCCR2B = 0;
   TCNT2  = 0;//initialize counter value to 0
-  OCR2A = 249;// = (16*10^6) / (1000*64) - 1 (must be <256) for 2khz
+  OCR2A = 249;// = (16*10^6) / (1000*64) - 1 (must be <256) for 1khz
   TCCR2A |= (1 << WGM21); // turn on CTC mode
   TCCR2B |= (1 << CS21) | (1 << CS20);    // Set CS21 bit for 64 prescaler
   TIMSK2 |= (1 << OCIE2A);   // enable timer compare interrupt
 
-  sei();         // set enable interrupt reallow interrupts
+//  sei();         // set enable interrupt reallow interrupts
   
   pinMode(OUTPUT_PIN,OUTPUT); 
   Serial.println("Timer interrupts initialized.");
