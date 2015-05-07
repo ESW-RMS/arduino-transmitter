@@ -19,7 +19,6 @@
  */
 
 #include <SoftwareSerial.h>
-#include <WProgram.h>
 #include <String.h>
 #include <Timers.h>
 
@@ -36,7 +35,7 @@
 #define ANALOG_PIN_OFFSET 3
 #define PHASE_NUMBER_OFFSET 13
 #define OUTPUT_PIN 13
-#define SMS_SEND_PERIOD 32                                    // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 60                                    // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 #define NUM_SMS_COMMANDS 4
@@ -72,7 +71,6 @@ void setup() {
   Serial.println("ESW RMS Transmitter initializing...");
   synchronizeLocalTime();
   initializeTimerInterrupts();
-  Serial.println("Initialization complete!");
   
   v1.port = A3;
   v2.port = A4;
@@ -81,21 +79,23 @@ void setup() {
   i2.port = A1;
   i3.port = A2;
 
+  Serial.println("Initialization complete!");
   // TMRArd_InitTimer(0, PRINT_TIME);
 }
 
 void loop() {
-  pollUserCommand();
-  printShieldGSMResponse("");
+//  pollUserCommand();
+  //printShieldGSMResponse("");
   if(Serial.available()) {
-   sendSMSMessage("hello world");
     Serial.println(millis());
     Serial.read();
   }
+  
+  while (shieldGSM.available()) Serial.write(shieldGSM.read());
 }
 
 boolean toggle2;
-unsigned int v1sample = analogRead(3);
+unsigned int v1sample = 0;
 unsigned int v1sample_prev = 1024;
 unsigned int v1max = 0;
 unsigned int v1min = 1024;
@@ -110,13 +110,13 @@ ISR(TIMER2_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8
 //    }
 //  }
   
-  if ((v1sample > 511) && (v1sample_prev < 511)) {
-    v1.freq = micros() - v1.mrrz;
-    v1.mrrz = micros();
-  }
-  v1sample_prev = v1sample;
+//  if ((v1sample > 511) && (v1sample_prev < 511)) {
+//    v1.freq = micros() - v1.mrrz;
+//    v1.mrrz = micros();
+//  }
+//  v1sample_prev = v1sample;
 
-//generates pulse wave of frequency 1kHz/2 = 0.5kHz (takes two cycles for full wave- toggle high then toggle low)
+//generates pulse wave of frequency interrupt/2 (takes two cycles for full wave- toggle high then toggle low)
   if (toggle2){
     digitalWrite(8,HIGH);
     toggle2 = 0;
@@ -138,17 +138,18 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
 
   count++;
   if (count >=SMS_INTERRUPT_CYCLES) {
-    digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
-    Serial.println(v1max);
-    Serial.println(v1min);
+//    digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
+//    Serial.println(v1max);
+//    Serial.println(v1min);
 //    Serial.println(analogRead(3));
-    Serial.println(v1.freq); //frequency
+//    Serial.println(v1.freq); //frequency
 
 //    for(register int i = A0; i < A3; i++){
 //      sensorDataMessage(i);
 //    }
 
-    sendSMSMessage("timer interrupt message");    
+    //sendSMSMessage("timer interrupt message");
+    Serial.println("timer interrupt message");
     count = 0;
   }
 }
@@ -243,7 +244,7 @@ int printShieldGSMResponse(String resp) {
   int result = INIT_WAIT_CODE;
   String serialOutput;
   String okString = "\r\nOK\r\n";
-  String errorString = "ERROR";
+  String errorString = "ERRjho8769rtOR";
   while(shieldGSM.available()) {
     char c = shieldGSM.read();
 //    Serial.print((int)c);

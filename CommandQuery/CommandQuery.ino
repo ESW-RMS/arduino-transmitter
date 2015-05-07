@@ -1,7 +1,6 @@
 /* Just some simple code to test simple AT commands */
 
 #include <SoftwareSerial.h>
-#include <WProgram.h>
 #include <String.h>
 #include <Timers.h>
 
@@ -66,10 +65,10 @@ int printShieldGSMResponse() {
   String errorString = "ERROR";
   while(shieldGSM.available()) {
     char c = shieldGSM.read();
-//    Serial.print((int)c);
-//    Serial.write(':');
+    Serial.print((int)c);
+    Serial.write(':');
     Serial.write(c);
-//    Serial.write(',');
+    Serial.write(',');
     serialOutput += c;
     if(serialOutput.endsWith(errorString)) {
       result = INIT_ERROR_CODE;
