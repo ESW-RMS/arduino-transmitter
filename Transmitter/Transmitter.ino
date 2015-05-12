@@ -31,12 +31,13 @@
 #define INIT_WAIT_CODE -1
 #define INIT_ERROR_CODE -2
 #define INIT_TIMEOUT_CODE -3
-#define INIT_TIME 5000
+#define INIT_TIME 1000
 #define COMPARE_MATCH_REGISTER 62499 // [16 MHz / (1024 * 1/4 Hz) ] - 1
 #define ANALOG_PIN_OFFSET 3
+#define NUM_QUANTITY 6
 #define PHASE_NUMBER_OFFSET 13
 #define OUTPUT_PIN 13
-#define SMS_SEND_PERIOD 60                                   // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 12                                   // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 #define NUM_SMS_COMMANDS 4
@@ -66,27 +67,33 @@ struct quantity {
   unsigned long rms;
   unsigned long mrrz; // most recent raising over zero
   unsigned long freq;
+  unsigned long samp;
   int port;
 } v1, v2, v3, i1, i2, i3;
 
-quantity *sensorInputs[6] = {&v1, &v2, &v3, &i1, &i2, &i3};
+quantity *sensorInputs[6] = {&i1, &i2, &i3, &v1, &v2, &v3};
+unsigned long testsample[6] = {0};
 
 void setup() {
-  //powerUp();
 //  cli();
   Serial.begin(BAUD_RATE);
   shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
+  Serial.println("Powering down...");
+  struct ATcommand powerDown[1] = {ATcommand("AT+CPOWD=1\r","NORMAL POWER DOWN")};
+  executeATCommands(powerDown,1);
+  powerUp();
+  Serial.println("Rebooting...");
   Serial.println("ESW RMS Transmitter initializing...");
 //  synchronizeLocalTime();
   initializeTimerInterrupts();
   ADCsetup();
   
-  v1.port = A3;
-  v2.port = A4;
-  v3.port = A5;
   i1.port = A0;
   i2.port = A1;
   i3.port = A2;
+  v1.port = A3;
+  v2.port = A4;
+  v3.port = A5;
     
   Serial.println("Initialization complete!");
   // TMRArd_InitTimer(0, PRINT_TIME);
@@ -99,11 +106,16 @@ void loop() {
 
   if(flagAutoSMS) {
     if (readFlag == 1){
-      Serial.println(analogVal);
+      for(register int i=0;i<NUM_QUANTITY;i++) {
+        cli();
+        //Serial.println(sensorInputs[i]->samp);
+        Serial.println(testsample[i]);
+        sei();
+      }
       readFlag = 0;
     }
-    sendSMSMessage("message from loop");
-//    Serial.println("message from loop");
+//    sendSMSMessage("message from loop");
+    Serial.println("message from loop");
     flagAutoSMS=false;
   }
 
@@ -120,9 +132,23 @@ void loop() {
 }
 
 // Interrupt service routine for the ADC completion
+int bin=5;
 ISR(ADC_vect){
+  char adm = ADMUX;
+//  sensorInputs[ADMUX & B00000111]->samp = ADCL | (ADCH << 8);
+  testsample[bin] = ADCL | (ADCH << 8);
   readFlag = 1;
-  analogVal = ADCL | (ADCH << 8);
+  
+  if (ADMUX & 1) {
+    ADMUX & ~(1<<MUX0);
+  }
+  else{
+    ADMUX |= (1<<MUX0);
+  }
+  bin = (bin == 5) ? 4 : 5;
+
+  //ADMUX = (adm >= B01000101) ? B01000100 : B01000101;
+//  ADMUX = (ADMUX >= B01000101) ? B01000000 : ADMUX+1;
 }
 
 boolean toggle2;
@@ -282,7 +308,7 @@ int printShieldGSMResponse(String resp) {
   int result = INIT_WAIT_CODE;
   String serialOutput;
   String okString = "\r\nOK\r\n";
-  String errorString = "ERRjho8769rtOR";
+  String errorString = "ERROR";
   while(shieldGSM.available()) {
     char c = shieldGSM.read();
 //    Serial.print((int)c);
@@ -343,10 +369,10 @@ void initializeTimerInterrupts() {
 }
 
 void ADCsetup() {  
-  ADMUX &= B11011111;
+  ADMUX &= B01011111;
   ADMUX |= B01000000;
-  ADMUX &= B11110000;
-  ADMUX |= 5;
+  ADMUX &= B11110000; //starting with analog pin 0
+  ADMUX |= B00000101; //starting with analog pin 5
   ADCSRA |= B10000000;
   ADCSRA |= B00100000;
   ADCSRB &= B11111000;
