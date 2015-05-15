@@ -37,7 +37,7 @@
 #define NUM_QUANTITY 6
 #define PHASE_NUMBER_OFFSET 13
 #define OUTPUT_PIN 13
-#define SMS_SEND_PERIOD 12                                   // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 8                                   // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 #define NUM_SMS_COMMANDS 4
@@ -69,7 +69,12 @@ struct quantity {
   unsigned long freq;
   unsigned long samp;
   int port;
-} v1, v2, v3, i1, i2, i3;
+  quantity(int p) {
+    port = p;
+    min = 1024;
+    max = 0;
+  }
+} v1(A3), v2(A4), v3(A5), i1(A0), i2(A1), i3(A2);
 
 quantity *sensorInputs[6] = {&i1, &i2, &i3, &v1, &v2, &v3};
 unsigned long testsample[6] = {0};
@@ -78,15 +83,15 @@ void setup() {
 //  cli();
   Serial.begin(BAUD_RATE);
   shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
-  Serial.println("Powering down...");
-  struct ATcommand powerDown[1] = {ATcommand("AT+CPOWD=1\r","NORMAL POWER DOWN")};
-  executeATCommands(powerDown,1);
-  powerUp();
+//  Serial.println("Powering down...");
+//  struct ATcommand powerDown[1] = {ATcommand("AT+CPOWD=1\r","NORMAL POWER DOWN")};
+//  executeATCommands(powerDown,1);
+//  powerUp();
   Serial.println("Rebooting...");
   Serial.println("ESW RMS Transmitter initializing...");
 //  synchronizeLocalTime();
   initializeTimerInterrupts();
-  ADCsetup();
+//  ADCsetup();
   
   i1.port = A0;
   i2.port = A1;
@@ -105,39 +110,49 @@ void loop() {
   while (shieldGSM.available()) Serial.write(shieldGSM.read());
 
   if(flagAutoSMS) {
-    if (readFlag == 1){
-      for(register int i=0;i<NUM_QUANTITY;i++) {
-        cli();
-//        Serial.println("Phase "+String(i+1));
-//        Serial.println(sensorInputs[i+ANALOG_PIN_OFFSET]->rms);
-//        Serial.println(sensorInputs[i]->rms);
-//        Serial.println(sensorInputs[i]->freq);
-        Serial.println(testsample[i]);
-        sei();
+//    if (readFlag == 1){
+//      for(register int i=0;i<NUM_QUANTITY;i++) {
+//        cli();
+////        Serial.println("Phase "+String(i+1));
+////        Serial.println(sensorInputs[i+ANALOG_PIN_OFFSET]->rms);
+////        Serial.println(sensorInputs[i]->rms);
+////        Serial.println(sensorInputs[i]->freq);
+//        Serial.println(testsample[i]);
+//        sei();
+//      }
+//      readFlag = 0;
+//    }
+
+      for(register int i=0;i< NUM_QUANTITY;i++) {
+        quantity *q = sensorInputs[i];
+        Serial.println(q->samp);
+        Serial.println(q->min);
+        Serial.println(q->max);
+        Serial.println("---");
       }
-      readFlag = 0;
-    }
+
 //    sendSMSMessage("message from loop");
     Serial.println("message from loop");
     flagAutoSMS=false;
   }
 
-//  for(register int i=0;i<1;i++) {
-//    quantity *q = sensorInputs[0];
-//    unsigned int sensorReading = analogRead(q->port);
-//    if (sensorReading > q->max) {
-//      q->max = sensorReading;
-//    }
-//    if (sensorReading < q->min) {
-//      q->min = sensorReading;
-//    }
-//  }
+    for(register int i=0;i< NUM_QUANTITY;i++) {
+      quantity *q = sensorInputs[i];
+      q->samp = analogRead(q->port);
+      if (q->samp > q->max) {
+        q->max = q->samp;
+      }
+      if (q->samp < q->min) {
+        q->min = q->samp;
+      }
+    }
 }
 
 // Interrupt service routine for the ADC completion
 ISR(ADC_vect){
   int bin = ADMUX & B00000111; 
-  ADMUX = (ADMUX >= B01000101) ? B01000000 : ADMUX+1;
+//  ADMUX = (ADMUX >= B01000101) ? B01000000 : ADMUX+1;
+  ADMUX = (ADMUX >= B01000101) ? B01000100 : ADMUX+1;
 
   char adm = ADMUX;
 //  sensorInputs[ADMUX & B00000111]->samp = ADCL | (ADCH << 8);
