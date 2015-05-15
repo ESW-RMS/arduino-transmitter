@@ -108,7 +108,10 @@ void loop() {
     if (readFlag == 1){
       for(register int i=0;i<NUM_QUANTITY;i++) {
         cli();
-        //Serial.println(sensorInputs[i]->samp);
+//        Serial.println("Phase "+String(i+1));
+//        Serial.println(sensorInputs[i+ANALOG_PIN_OFFSET]->rms);
+//        Serial.println(sensorInputs[i]->rms);
+//        Serial.println(sensorInputs[i]->freq);
         Serial.println(testsample[i]);
         sei();
       }
@@ -132,23 +135,15 @@ void loop() {
 }
 
 // Interrupt service routine for the ADC completion
-int bin=5;
 ISR(ADC_vect){
+  int bin = ADMUX & B00000111; 
+  ADMUX = (ADMUX >= B01000101) ? B01000000 : ADMUX+1;
+
   char adm = ADMUX;
 //  sensorInputs[ADMUX & B00000111]->samp = ADCL | (ADCH << 8);
   testsample[bin] = ADCL | (ADCH << 8);
-  readFlag = 1;
-  
-  if (ADMUX & 1) {
-    ADMUX & ~(1<<MUX0);
-  }
-  else{
-    ADMUX |= (1<<MUX0);
-  }
-  bin = (bin == 5) ? 4 : 5;
+  readFlag = 1;  
 
-  //ADMUX = (adm >= B01000101) ? B01000100 : B01000101;
-//  ADMUX = (ADMUX >= B01000101) ? B01000000 : ADMUX+1;
 }
 
 boolean toggle2;
@@ -214,7 +209,7 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
   }
 }
 
-void sensorDataMessage(int i) { //change to String if using dataMessage
+void sensorDataMessage(int i) {
   Serial.print("P");
   Serial.print(i-PHASE_NUMBER_OFFSET);
   Serial.print("-V:");
@@ -382,4 +377,5 @@ void ADCsetup() {
   ADCSRA |=B01000000;
   Serial.println("ADC timer initialized.");
 }
+
 
