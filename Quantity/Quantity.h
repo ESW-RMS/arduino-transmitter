@@ -7,7 +7,7 @@
 class Quantity {
 public:
 	Quantity(String n, unsigned int p);
-	void reset();
+	void clear();
 	void sampleSignal();
 	void getValues();
 

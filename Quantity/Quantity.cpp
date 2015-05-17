@@ -6,7 +6,7 @@ Quantity::Quantity (String n, unsigned int p) {
 	reset();
 }
 
-void Quantity::reset() {
+void Quantity::clear() {
 	samp = 0;
 	prevsamp = 0;
 	max = 0;
