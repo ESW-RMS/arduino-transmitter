@@ -128,6 +128,7 @@ void loop() {
         Serial.println(q->samp);
         Serial.println(q->min);
         Serial.println(q->max);
+        Serial.println(q->rms);
         Serial.println("---");
       }
 
@@ -136,16 +137,22 @@ void loop() {
     flagAutoSMS=false;
   }
 
+    pinMode(4,OUTPUT);
+    digitalWrite(4,HIGH);
     for(register int i=0;i< NUM_QUANTITY;i++) {
       quantity *q = sensorInputs[i];
       q->samp = analogRead(q->port);
       if (q->samp > q->max) {
         q->max = q->samp;
+        q->rms = (q->max - 511)/sqrt(2); //need to set bounds for under/overflow if this yields a negative result
       }
       if (q->samp < q->min) {
         q->min = q->samp;
       }
     }
+    pinMode(4,OUTPUT);
+    digitalWrite(4,LOW);
+
 }
 
 // Interrupt service routine for the ADC completion
