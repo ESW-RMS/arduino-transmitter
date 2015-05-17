@@ -37,7 +37,7 @@
 #define NUM_QUANTITY 6
 #define PHASE_NUMBER_OFFSET 13
 #define OUTPUT_PIN 13
-#define SMS_SEND_PERIOD 8                                   // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 12                                   // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 #define NUM_SMS_COMMANDS 4
@@ -62,12 +62,21 @@ struct ATcommand {
 };
 
 struct quantity {
+  unsigned long samp;
+  unsigned long prevsamp;
+
   unsigned long min;
   unsigned long max;
   unsigned long rms;
+  unsigned long maxsum;
+  
   unsigned long mrrz; // most recent raising over zero
   unsigned long freq;
-  unsigned long samp;
+  unsigned long freqsum;
+  int cycl;  
+
+  boolean reset;
+  
   int port;
   quantity(int p) {
     port = p;
@@ -79,30 +88,43 @@ struct quantity {
 quantity *sensorInputs[6] = {&i1, &i2, &i3, &v1, &v2, &v3};
 unsigned long testsample[6] = {0};
 
+void resetQuantity(struct quantity *q) {
+  q->min = 1024;
+  q->max = 0;
+  q->maxsum = 0;
+  q->cycl = 0;
+  q->reset = true;
+}
+
 void setup() {
 //  cli();
   Serial.begin(BAUD_RATE);
   shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
-//  Serial.println("Powering down...");
-//  struct ATcommand powerDown[1] = {ATcommand("AT+CPOWD=1\r","NORMAL POWER DOWN")};
-//  executeATCommands(powerDown,1);
-//  powerUp();
-  Serial.println("Rebooting...");
+//  verifyGSMOn();
   Serial.println("ESW RMS Transmitter initializing...");
 //  synchronizeLocalTime();
   initializeTimerInterrupts();
-//  ADCsetup();
-  
-  i1.port = A0;
-  i2.port = A1;
-  i3.port = A2;
-  v1.port = A3;
-  v2.port = A4;
-  v3.port = A5;
-    
+
+  for(register int i=4;i< NUM_QUANTITY;i++) {
+    quantity *q = sensorInputs[i];
+    resetQuantity(q);
+  }
+  Serial.println("Sensor quantities initialized.");
+      
   Serial.println("Initialization complete!");
   // TMRArd_InitTimer(0, PRINT_TIME);
 //  sei();
+}
+
+void getValues(struct quantity *q) {
+  Serial.println(q->samp);
+//  Serial.println(q->min);
+  Serial.println(q->max);
+//  Serial.println(q->rms);
+//  Serial.println(q->maxsum/q->cycl);
+  Serial.println(q->cycl);
+  Serial.println(q->freq);
+  Serial.println("---");
 }
 
 void loop() {
@@ -123,13 +145,16 @@ void loop() {
 //      readFlag = 0;
 //    }
 
-      for(register int i=0;i< NUM_QUANTITY;i++) {
+      for(register int i=5;i< NUM_QUANTITY;i++) {
         quantity *q = sensorInputs[i];
-        Serial.println(q->samp);
-        Serial.println(q->min);
-        Serial.println(q->max);
-        Serial.println(q->rms);
-        Serial.println("---");
+        getValues(q);
+//        Serial.println(q->samp);
+//        Serial.println(q->min);
+//        Serial.println(q->max);
+//        Serial.println(q->rms);
+//        Serial.println(q->maxsum/q->cycl);
+//        Serial.println("---");
+        resetQuantity(q);
       }
 
 //    sendSMSMessage("message from loop");
@@ -141,31 +166,38 @@ void loop() {
     digitalWrite(4,HIGH);
     for(register int i=0;i< NUM_QUANTITY;i++) {
       quantity *q = sensorInputs[i];
+
+      // getting maximum and minimum values and calculating rms from max
       q->samp = analogRead(q->port);
       if (q->samp > q->max) {
         q->max = q->samp;
         q->rms = (q->max - 511)/sqrt(2); //need to set bounds for under/overflow if this yields a negative result
+        q->maxsum += q->max;
       }
       if (q->samp < q->min) {
         q->min = q->samp;
       }
+      
+      //getting frequency
+      if ((q->samp > 511) && (q->prevsamp < 511)) {
+        unsigned long crosstime = micros();
+        if (!q->reset) {
+          q->freq = crosstime - q->mrrz;
+          q->freqsum += q->freq;
+        }
+        else {
+          q->reset=false;
+        }
+        q->mrrz = crosstime;
+        q->cycl++;
+        q->max = 0;
+        q->min = 1024;
+      }
+      
+      q->prevsamp = q->samp;
     }
     pinMode(4,OUTPUT);
     digitalWrite(4,LOW);
-
-}
-
-// Interrupt service routine for the ADC completion
-ISR(ADC_vect){
-  int bin = ADMUX & B00000111; 
-//  ADMUX = (ADMUX >= B01000101) ? B01000000 : ADMUX+1;
-  ADMUX = (ADMUX >= B01000101) ? B01000100 : ADMUX+1;
-
-  char adm = ADMUX;
-//  sensorInputs[ADMUX & B00000111]->samp = ADCL | (ADCH << 8);
-  testsample[bin] = ADCL | (ADCH << 8);
-  readFlag = 1;  
-
 }
 
 boolean toggle2;
@@ -231,15 +263,6 @@ ISR (TIMER1_COMPA_vect) { // timer one interrupt function
   }
 }
 
-void sensorDataMessage(int i) {
-  Serial.print("P");
-  Serial.print(i-PHASE_NUMBER_OFFSET);
-  Serial.print("-V:");
-  Serial.print(analogRead(i + ANALOG_PIN_OFFSET));
-  Serial.print(",I:");
-  Serial.println(analogRead(i));
-}
-
 void executeATCommands(struct ATcommand *commandsList, int numCommands) {
     for (int i = 0; i < numCommands; i++) {
       struct ATcommand atc = commandsList[i];
@@ -278,16 +301,6 @@ void sendSMSMessage(String message) {
   
   struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = { ATcommand("AT+CMGF=1\r","\r\nOK\r\n") , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,"\r\n> ") , ATcommand(String((char)26),"\r\nOK\r\n") };
   executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
-
-// old hard-coded version
-//  delay(100);
-//  executeUserCommand("AT+CMGS = "+PHONE_NUMBER);
-//  delay(100);
-//  executeUserCommand(message);
-//  delay(100);
-//  executeUserCommand((char)26); //the ASCII code of the ctrl+z is 26
-//  delay(100);
-//  Serial.println();
 }
 
 void executeUserCommand(String buffer) {
@@ -354,6 +367,14 @@ void powerUp() {
  delay(3000);
 }
 
+void verifyGSMOn() {
+  Serial.println("Powering down...");
+  struct ATcommand powerDown[1] = {ATcommand("AT+CPOWD=1\r","NORMAL POWER DOWN")};
+  executeATCommands(powerDown,1);
+  powerUp();
+  Serial.println("Rebooting...");
+}
+
 void synchronizeLocalTime() {
   struct ATcommand setupCommands[NUM_INIT_COMMANDS] = { ATcommand("AT","\r\nOK\r\n") , ATcommand("AT+CLTS=1","\r\nOK\r\n") , ATcommand("AT+CFUN=0","\r\nOK\r\n") , ATcommand("AT+CFUN=1","\r\nOK\r\n") , ATcommand("AT+CCLK?","\r\nOK\r\n") };
   executeATCommands(setupCommands, NUM_INIT_COMMANDS);
@@ -384,20 +405,4 @@ void initializeTimerInterrupts() {
 //  pinMode(OUTPUT_PIN,OUTPUT); 
   Serial.println("Timer interrupts initialized.");
 }
-
-void ADCsetup() {  
-  ADMUX &= B01011111;
-  ADMUX |= B01000000;
-  ADMUX &= B11110000; //starting with analog pin 0
-  ADMUX |= B00000101; //starting with analog pin 5
-  ADCSRA |= B10000000;
-  ADCSRA |= B00100000;
-  ADCSRB &= B11111000;
-  ADCSRA |= B00000111;
-  ADCSRA |= B00001000;
-  readFlag = 0;
-  ADCSRA |=B01000000;
-  Serial.println("ADC timer initialized.");
-}
-
 
