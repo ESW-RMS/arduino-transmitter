@@ -21,6 +21,7 @@
 
 #include <SoftwareSerial.h>
 #include <String.h>
+#include <Quantity.h>
 #include <Timers.h>
 
 #define BAUD_RATE 19200
@@ -61,40 +62,7 @@ struct ATcommand {
   }
 };
 
-struct quantity {
-  unsigned long samp;
-  unsigned long prevsamp;
-
-  unsigned long min;
-  unsigned long max;
-  unsigned long rms;
-  unsigned long maxsum;
-  
-  unsigned long mrrz; // most recent raising over zero
-  unsigned long freq;
-  unsigned long freqsum;
-  int cycl;  
-
-  boolean reset;
-  
-  int port;
-  quantity(int p) {
-    port = p;
-    min = 1024;
-    max = 0;
-  }
-} v1(A3), v2(A4), v3(A5), i1(A0), i2(A1), i3(A2);
-
-quantity *sensorInputs[6] = {&i1, &i2, &i3, &v1, &v2, &v3};
-unsigned long testsample[6] = {0};
-
-void resetQuantity(struct quantity *q) {
-  q->min = 1024;
-  q->max = 0;
-  q->maxsum = 0;
-  q->cycl = 0;
-  q->reset = true;
-}
+Quantity *sensorInputs[6];
 
 void setup() {
 //  cli();
@@ -102,13 +70,16 @@ void setup() {
   shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
 //  verifyGSMOn();
   Serial.println("ESW RMS Transmitter initializing...");
-//  synchronizeLocalTime();
   initializeTimerInterrupts();
 
-  for(register int i=4;i< NUM_QUANTITY;i++) {
-    quantity *q = sensorInputs[i];
-    resetQuantity(q);
-  }
+  sensorInputs[0] = new Quantity("I1",A0);
+  sensorInputs[1] = new Quantity("I2",A1);
+  sensorInputs[2] = new Quantity("I3",A2);
+  sensorInputs[3] = new Quantity("V1",A3);
+  sensorInputs[4] = new Quantity("V2",A4);
+  sensorInputs[5] = new Quantity("V3",A5);
+  
+
   Serial.println("Sensor quantities initialized.");
       
   Serial.println("Initialization complete!");
@@ -116,47 +87,13 @@ void setup() {
 //  sei();
 }
 
-void getValues(struct quantity *q) {
-  Serial.println(q->samp);
-//  Serial.println(q->min);
-  Serial.println(q->max);
-//  Serial.println(q->rms);
-//  Serial.println(q->maxsum/q->cycl);
-  Serial.println(q->cycl);
-  Serial.println(q->freq);
-  Serial.println("---");
-}
-
 void loop() {
   pollUserCommand();
   while (shieldGSM.available()) Serial.write(shieldGSM.read());
 
   if(flagAutoSMS) {
-//    if (readFlag == 1){
-//      for(register int i=0;i<NUM_QUANTITY;i++) {
-//        cli();
-////        Serial.println("Phase "+String(i+1));
-////        Serial.println(sensorInputs[i+ANALOG_PIN_OFFSET]->rms);
-////        Serial.println(sensorInputs[i]->rms);
-////        Serial.println(sensorInputs[i]->freq);
-//        Serial.println(testsample[i]);
-//        sei();
-//      }
-//      readFlag = 0;
-//    }
-
-      for(register int i=5;i< NUM_QUANTITY;i++) {
-        quantity *q = sensorInputs[i];
-        getValues(q);
-//        Serial.println(q->samp);
-//        Serial.println(q->min);
-//        Serial.println(q->max);
-//        Serial.println(q->rms);
-//        Serial.println(q->maxsum/q->cycl);
-//        Serial.println("---");
-        resetQuantity(q);
-      }
-
+      sensorInputs[3]->getValues();
+      
 //    sendSMSMessage("message from loop");
     Serial.println("message from loop");
     flagAutoSMS=false;
@@ -165,100 +102,17 @@ void loop() {
     pinMode(4,OUTPUT);
     digitalWrite(4,HIGH);
     for(register int i=0;i< NUM_QUANTITY;i++) {
-      quantity *q = sensorInputs[i];
-
-      // getting maximum and minimum values and calculating rms from max
-      q->samp = analogRead(q->port);
-      if (q->samp > q->max) {
-        q->max = q->samp;
-        q->rms = (q->max - 511)/sqrt(2); //need to set bounds for under/overflow if this yields a negative result
-        q->maxsum += q->max;
-      }
-      if (q->samp < q->min) {
-        q->min = q->samp;
-      }
-      
-      //getting frequency
-      if ((q->samp > 511) && (q->prevsamp < 511)) {
-        unsigned long crosstime = micros();
-        if (!q->reset) {
-          q->freq = crosstime - q->mrrz;
-          q->freqsum += q->freq;
-        }
-        else {
-          q->reset=false;
-        }
-        q->mrrz = crosstime;
-        q->cycl++;
-        q->max = 0;
-        q->min = 1024;
-      }
-      
-      q->prevsamp = q->samp;
+      Quantity *q = sensorInputs[i];
+      q->sampleSignal();
     }
-    pinMode(4,OUTPUT);
     digitalWrite(4,LOW);
 }
 
-boolean toggle2;
-unsigned int v1sample = 0;
-unsigned int v1sample_prev = 1024;
-unsigned int v1max = 0;
-unsigned int v1min = 1024;
-int sensorval=0;
-ISR(TIMER2_COMPA_vect){//timer0 interrupt 2kHz toggles pin 8    
-//  for(register int i=0;i<1;i++) {
-//    quantity *q = sensorInputs[0];
-//    unsigned long sensorReading = analogRead(q->port);
-//    if (sensorReading > q->max) {
-//      q->max = sensorReading;
-//    }
-//    if (sensorReading < q->min) {
-//      q->min = sensorReading;
-//    }
-//  }
-    
-  if ((v1sample > 511) && (v1sample_prev < 511)) {
-    v1.freq = micros() - v1.mrrz;
-    v1.mrrz = micros();
-  }
-  v1sample_prev = v1sample;
-
-//generates pulse wave of frequency interrupt/2 (takes two cycles for full wave- toggle high then toggle low)
-//  if (toggle2){
-//    digitalWrite(13,HIGH);
-//    toggle2 = 0;
-//  }
-//  else{
-//    digitalWrite(13,LOW);
-//    toggle2 = 1;
-//  }
-}
-
 char count = 0;
-unsigned long prev1 = 0;
-unsigned long curr1 = 0;
 ISR (TIMER1_COMPA_vect) { // timer one interrupt function
-//  verifying the time between interrupts ~ 4 seconds
-//  prev1 = curr1;
-//  curr1 = millis();
-//  Serial.println(curr1 - prev1);
-
   count++;
   if (count >=SMS_INTERRUPT_CYCLES) {
-//    digitalWrite(OUTPUT_PIN,digitalRead(OUTPUT_PIN) == LOW ? HIGH : LOW);
-//    Serial.println(v1max);
-//    Serial.println(v1min);
-//    Serial.println(analogRead(3));
-//    Serial.println(v1.freq); //frequency
-
-//    for(register int i = A0; i < A3; i++){
-//      sensorDataMessage(i);
-//    }
-
-    //sendSMSMessage("timer interrupt message");
     flagAutoSMS=true;
-//    Serial.println("timer interrupt message");
     count = 0;
   }
 }
@@ -315,21 +169,7 @@ void pollUserCommand() {
   if (avail) {
     Serial.println(millis());
     String buffer = Serial.readString();
-    executeUserCommand(buffer);
-//    buffer.trim();
-//    if (!flagSendSMS) buffer.replace(" ","");
-//    Serial.println(buffer);
-//    shieldGSM.println(buffer);
-//    delay(100);
-//    
-//    if (flagSendSMS) {
-//      shieldGSM.println((char)26);
-//      delay(100);
-//      flagSendSMS = false;
-//    }
-//    
-//    if (buffer.startsWith("AT+CMGS")) flagSendSMS = true;
-//    
+    executeUserCommand(buffer);  
   }
 }
 
@@ -371,8 +211,8 @@ void verifyGSMOn() {
   Serial.println("Powering down...");
   struct ATcommand powerDown[1] = {ATcommand("AT+CPOWD=1\r","NORMAL POWER DOWN")};
   executeATCommands(powerDown,1);
-  powerUp();
   Serial.println("Rebooting...");
+  powerUp();
 }
 
 void synchronizeLocalTime() {
@@ -391,14 +231,6 @@ void initializeTimerInterrupts() {
   TCCR1B |= (1 << WGM12); // turn on CTC mode
   TCCR1B |= (1 << CS12) | (1 << CS10); // set 1024 prescale factor
   TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
-
-  TCCR2A = 0;// clear registers
-  TCCR2B = 0;
-  TCNT2  = 0;//initialize counter value to 0
-  OCR2A = 249;// = (16*10^6) / (1000*64) - 1 (must be <256) for 1khz
-  TCCR2A |= (1 << WGM21); // turn on CTC mode
-  TCCR2B |= (1 << CS21) | (1 << CS20);    // Set CS21 bit for 64 prescaler
-  TIMSK2 |= (1 << OCIE2A);   // enable timer compare interrupt
 
   sei();         // set enable interrupt reallow interrupts
   

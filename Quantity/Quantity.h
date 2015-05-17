@@ -8,8 +8,21 @@ class Quantity {
 public:
 	Quantity(String n, unsigned int p);
 	void clear();
+	
 	void sampleSignal();
 	void getValues();
+
+	void getName();
+	void getPort();
+	void getSamp();
+	void getPrevSamp();
+	void getMax();
+	void getRMS();
+	void getMRRZ();
+	void getFreq();
+	void getMaxSum();
+	void getFreqSum();
+	void getNumCycles();
 
 private:
 	// object properties
@@ -20,12 +33,12 @@ private:
 	unsigned int samp;
 	unsigned int prevsamp;
 	unsigned int max;
-	unsigned int rms;
 
 	unsigned long mrrz; // micro/milli second value
 	unsigned int freq;
 
 	// variables per hour
+	unsigned int rms;  // need to set bounds for under/overflow if this yields a negative result
 	unsigned long maxsum; 
 	unsigned long freqsum;
 	unsigned int  numcycles;

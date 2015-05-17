@@ -23,7 +23,85 @@ void Quantity::clear() {
 }
 
 void Quantity::sampleSignal() {
+	samp = analogRead(port);
+	if (samp > max) {
+    	max = samp;
+  	}
 
+	if ((samp > 511) && (prevsamp < 511)) {  // check if signal crosses zero => 511
+    unsigned long crosstime = micros();
+    
+    if (reset) {
+      reset=false;
+   	}
+    else {
+      freqsum += crosstime - mrrz;
+      numcycles++;
+    }
+
+    mrrz = crosstime;
+
+    maxsum += max;
+    max = 0;
+  }
+
+	prevsamp = samp;
+}
+
+void Quantity::getName(){
+	Serial.println(name);	
+}
+
+void Quantity::getPort(){
+	Serial.print("port: ");
+	Serial.println(port);	
+}
+
+void Quantity::getSamp(){
+	Serial.print("samp: ");
+	Serial.println(samp);	
+}
+
+void Quantity::getPrevSamp(){
+	Serial.print("prevsamp: ");
+	Serial.println(prevsamp);	
+}
+
+void Quantity::getMax(){
+	Serial.print("max: ");
+	Serial.println(max);	
+}
+
+void Quantity::getRMS(){
+	rms = (unsigned int) (0.707 * ( (double) maxsum/numcycles));
+	Serial.println("rms: ");
+	Serial.println(rms);
+}
+
+void Quantity::getMRRZ(){
+	Serial.print("mrrz: ");
+	Serial.println(mrrz);	
+}
+
+void Quantity::getFreq(){
+	freq = (unsigned int) ( (double) freqsum/numcycles);
+	Serial.print("freq: ");
+	Serial.println(freq);	
+}
+
+void Quantity::getMaxSum(){
+	Serial.print("maxsum: ");
+	Serial.println(maxsum);	
+}
+
+void Quantity::getFreqSum(){
+	Serial.print("freqsum: ");
+	Serial.println(freqsum);
+}
+
+void Quantity::getNumCycles(){
+	Serial.print("numcycles: ");
+	Serial.println(numcycles);
 }
 
 void Quantity::getValues() {
@@ -38,13 +116,11 @@ void Quantity::getValues() {
 
 	Serial.print("max: ");
 	Serial.println(max);
-	Serial.print("rms: ");
-	Serial.println(rms);
+	getRMS();
 
 	Serial.print("mrrz: ");
 	Serial.println(mrrz);
-	Serial.print("freq: ");
-	Serial.println(freq);
+	getFreq();
 
 	Serial.print("maxsum: ");
 	Serial.println(maxsum);
