@@ -20,7 +20,7 @@ public:
 	void getPrevSamp();
 	void getMax();
 	void getRMS();
-	void getMRRZ();
+	unsigned long getMRRZ();
 	void getFreq();
 	void getMaxSum();
 	void getFreqSum();

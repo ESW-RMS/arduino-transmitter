@@ -78,9 +78,10 @@ void Quantity::getRMS(){
 	Serial.println(rms);
 }
 
-void Quantity::getMRRZ(){
+unsigned long Quantity::getMRRZ(){
 	Serial.print("mrrz: ");
 	Serial.println(mrrz);	
+	return mrrz;
 }
 
 void Quantity::getFreq(){

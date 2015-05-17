@@ -22,6 +22,7 @@
 #include <SoftwareSerial.h>
 #include <String.h>
 #include <Quantity.h>
+#include <Phase.h>
 #include <Timers.h>
 
 #define BAUD_RATE 19200
@@ -92,6 +93,14 @@ void loop() {
   while (shieldGSM.available()) Serial.write(shieldGSM.read());
 
   if(flagAutoSMS) {
+//    for(register int i=0;i< NUM_QUANTITY;i++) {
+//      Quantity *q = sensorInputs[i];
+//      q->getValues();
+//      q->clear();
+//    }
+
+      sensorInputs[0]->getValues();
+      sensorInputs[0]->clear();
       sensorInputs[3]->getValues();
       sensorInputs[3]->clear();
       
