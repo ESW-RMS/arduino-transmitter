@@ -7,8 +7,9 @@
 class Quantity {
 public:
 	Quantity(String n, unsigned int p);
-	reset();
-	getValues();
+	void reset();
+	void sampleSignal();
+	void getValues();
 
 private:
 	// object properties

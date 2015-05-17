@@ -1,11 +1,12 @@
 #include "Quantity.h"
 
 Quantity::Quantity (String n, unsigned int p) {
+	name = n;
 	port = p;
 	reset();
 }
 
-Quantity::reset() {
+void Quantity::reset() {
 	samp = 0;
 	prevsamp = 0;
 	max = 0;
@@ -21,7 +22,11 @@ Quantity::reset() {
 	reset = true;
 }
 
-Quantity::getValues() {
+void Quantity::sampleSignal() {
+
+}
+
+void Quantity::getValues() {
 	Serial.println(name);
 	Serial.print("port: ");
 	Serial.println(port);
