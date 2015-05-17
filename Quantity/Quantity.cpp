@@ -48,8 +48,12 @@ void Quantity::sampleSignal() {
 	prevsamp = samp;
 }
 
-void Quantity::getName(){
+void Quantity::printName(){
 	Serial.println(name);	
+}
+
+String Quantity::getName() {
+	return name;
 }
 
 void Quantity::getPort(){
@@ -74,20 +78,28 @@ void Quantity::getMax(){
 
 void Quantity::getRMS(){
 	rms = (unsigned int) (0.707 * ( (double) maxsum/numcycles - ZERO));
-	Serial.println("rms: ");
+	Serial.print("rms: ");
 	Serial.println(rms);
 }
 
 unsigned long Quantity::getMRRZ(){
-	Serial.print("mrrz: ");
-	Serial.println(mrrz);	
 	return mrrz;
 }
 
-void Quantity::getFreq(){
+void Quantity::printMRRZ(){
+	Serial.print("mrrz: ");
+	Serial.println(mrrz);	
+}
+
+unsigned int Quantity::getFreq(){
 	freq = (unsigned int) ( (double) freqsum/numcycles);
+	return freq;
+}
+
+void Quantity::printFreq() {
 	Serial.print("freq: ");
 	Serial.println(freq);	
+	
 }
 
 void Quantity::getMaxSum(){
@@ -100,9 +112,14 @@ void Quantity::getFreqSum(){
 	Serial.println(freqsum);
 }
 
-void Quantity::getNumCycles(){
+unsigned int Quantity::getNumCycles(){
 	Serial.print("numcycles: ");
 	Serial.println(numcycles);
+	return numcycles;
+}
+
+bool Quantity::getReset() {
+	return reset;
 }
 
 void Quantity::getValues() {

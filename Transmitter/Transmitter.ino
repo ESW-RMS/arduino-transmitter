@@ -48,11 +48,6 @@
 SoftwareSerial shieldGSM(7,8);
 boolean flagSendSMS;
 boolean flagAutoSMS;
-// High when a value is ready to be read
-volatile int readFlag;
-
-// Value to store analog result
-volatile int analogVal;
 
 struct ATcommand {
   String cmd;
@@ -63,7 +58,9 @@ struct ATcommand {
   }
 };
 
-Quantity *sensorInputs[6];
+//Quantity *sensorInputs[6];
+
+Phase *phases[3];
 
 void setup() {
 //  cli();
@@ -73,13 +70,15 @@ void setup() {
   Serial.println("ESW RMS Transmitter initializing...");
   initializeTimerInterrupts();
 
-  sensorInputs[0] = new Quantity("I1",A0);
-  sensorInputs[1] = new Quantity("I2",A1);
-  sensorInputs[2] = new Quantity("I3",A2);
-  sensorInputs[3] = new Quantity("V1",A3);
-  sensorInputs[4] = new Quantity("V2",A4);
-  sensorInputs[5] = new Quantity("V3",A5);
-  
+//  sensorInputs[0] = new Quantity("I1",A0);
+//  sensorInputs[1] = new Quantity("I2",A1);
+//  sensorInputs[2] = new Quantity("I3",A2);
+//  sensorInputs[3] = new Quantity("V1",A3);
+//  sensorInputs[4] = new Quantity("V2",A4);
+//  sensorInputs[5] = new Quantity("V3",A5);
+  phases[0] = new Phase("P1",A3,A0);
+  phases[1] = new Phase("P2",A4,A1);
+  phases[2] = new Phase("P3",A5,A2);
 
   Serial.println("Sensor quantities initialized.");
       
@@ -93,16 +92,16 @@ void loop() {
   while (shieldGSM.available()) Serial.write(shieldGSM.read());
 
   if(flagAutoSMS) {
-//    for(register int i=0;i< NUM_QUANTITY;i++) {
-//      Quantity *q = sensorInputs[i];
-//      q->getValues();
-//      q->clear();
-//    }
+    for(register int i=0;i< 1;i++) {
+      Phase *p = phases[i];
+      p->getValues();
+      p->clear();
+    }
 
-      sensorInputs[0]->getValues();
-      sensorInputs[0]->clear();
-      sensorInputs[3]->getValues();
-      sensorInputs[3]->clear();
+//      sensorInputs[0]->getValues();
+//      sensorInputs[0]->clear();
+//      sensorInputs[3]->getValues();
+//      sensorInputs[3]->clear();
       
 //    sendSMSMessage("message from loop");
     Serial.println("message from loop");
@@ -111,10 +110,15 @@ void loop() {
 
     pinMode(4,OUTPUT);
     digitalWrite(4,HIGH);
-    for(register int i=0;i< NUM_QUANTITY;i++) {
-      Quantity *q = sensorInputs[i];
-      q->sampleSignal();
+    
+    for(register int i=0;i<NUM_QUANTITY/2;i++){
+      Phase *p = phases[i];
+      p->sampleSignal();
     }
+//    for(register int i=0;i< NUM_QUANTITY;i++) {
+//      Quantity *q = sensorInputs[i];
+//      q->sampleSignal();
+//    }
     digitalWrite(4,LOW);
 }
 

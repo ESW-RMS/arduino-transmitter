@@ -22,7 +22,10 @@ private:
 	String name;
 	Quantity voltage;
 	Quantity current;
-	double pf; // power factor
+	// double pf; // power factor
+	signed long pf; // temporary; will be double eventually
+	signed long pfsum;
+	unsigned int numsamples;
 };
 
 #endif

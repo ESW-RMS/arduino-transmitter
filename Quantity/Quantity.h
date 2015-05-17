@@ -14,17 +14,21 @@ public:
 	void sampleSignal();
 	void getValues();
 
-	void getName();
+	void printName();
+	String getName();
 	void getPort();
 	void getSamp();
 	void getPrevSamp();
 	void getMax();
 	void getRMS();
 	unsigned long getMRRZ();
-	void getFreq();
+	void printMRRZ();
+	unsigned int getFreq();
+	void printFreq();
 	void getMaxSum();
 	void getFreqSum();
-	void getNumCycles();
+	unsigned int getNumCycles();
+	bool getReset();
 
 private:
 	// object properties
