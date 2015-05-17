@@ -3,7 +3,7 @@
 Quantity::Quantity (String n, unsigned int p) {
 	name = n;
 	port = p;
-	reset();
+	clear();
 }
 
 void Quantity::clear() {
