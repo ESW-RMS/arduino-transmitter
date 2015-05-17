@@ -29,7 +29,7 @@ private:
 	unsigned long maxsum; 
 	unsigned long freqsum;
 	unsigned int  numcycles;
-	unsigned bool reset;
+	bool reset;
 };
 
 #endif
