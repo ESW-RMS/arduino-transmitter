@@ -4,6 +4,8 @@
 #include "Arduino.h"
 #include "String.h"
 
+#define ZERO 511
+
 class Quantity {
 public:
 	Quantity(String n, unsigned int p);

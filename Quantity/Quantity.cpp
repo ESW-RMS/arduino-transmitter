@@ -28,7 +28,7 @@ void Quantity::sampleSignal() {
     	max = samp;
   	}
 
-	if ((samp > 511) && (prevsamp < 511)) {  // check if signal crosses zero => 511
+	if ((samp >= ZERO) && (prevsamp < ZERO)) {  // check if signal crosses zero => 511
     unsigned long crosstime = micros();
     
     if (reset) {
@@ -73,7 +73,7 @@ void Quantity::getMax(){
 }
 
 void Quantity::getRMS(){
-	rms = (unsigned int) (0.707 * ( (double) maxsum/numcycles));
+	rms = (unsigned int) (0.707 * ( (double) maxsum/numcycles - ZERO));
 	Serial.println("rms: ");
 	Serial.println(rms);
 }
