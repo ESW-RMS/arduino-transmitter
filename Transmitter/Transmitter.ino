@@ -93,6 +93,7 @@ void loop() {
 
   if(flagAutoSMS) {
       sensorInputs[3]->getValues();
+      sensorInputs[3]->clear();
       
 //    sendSMSMessage("message from loop");
     Serial.println("message from loop");
