@@ -5,19 +5,25 @@
 #include "Quantity.h"
 #include "String.h"
 
-class Phase{
+class Phase {
 public:
 	Phase(String n, unsigned int v, unsigned int i);
 	void clear();
 	
 	void sampleSignal();
-	void getValues();
+	
+	String getMessage();
+	String getName();
+	//unsigned int getPort();
+	//unsigned int getRMS();
+	unsigned int getPeriod();
+	signed long getDelay();
 
-	void getName();
-	void getPort();
-	void getRMS();
-	void getPeriod();
-	signed long getDelay(); 
+	void printMessage();
+	void printName();
+	//void printPort();
+	void printRMS();
+	void printPeriod();
 	void printDelay();
 	
 private:

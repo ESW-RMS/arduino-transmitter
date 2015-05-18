@@ -37,8 +37,10 @@
 #define COMPARE_MATCH_REGISTER 62499 // [16 MHz / (1024 * 1/4 Hz) ] - 1
 #define ANALOG_PIN_OFFSET 3
 #define NUM_QUANTITY 6
+#define NUM_PHASES NUM_QUANTITY/2
 #define PHASE_NUMBER_OFFSET 13
-#define OUTPUT_PIN 13
+#define HEARTBEAT 4
+#define LED 13
 #define SMS_SEND_PERIOD 12                                   // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
@@ -58,33 +60,24 @@ struct ATcommand {
   }
 };
 
-//Quantity *sensorInputs[6];
-
 Phase *phases[3];
 
 void setup() {
-//  cli();
   Serial.begin(BAUD_RATE);
   shieldGSM.begin(BAUD_RATE);    // the GPRS baud rate
 //  verifyGSMOn();
   Serial.println("ESW RMS Transmitter initializing...");
   initializeTimerInterrupts();
 
-//  sensorInputs[0] = new Quantity("I1",A0);
-//  sensorInputs[1] = new Quantity("I2",A1);
-//  sensorInputs[2] = new Quantity("I3",A2);
-//  sensorInputs[3] = new Quantity("V1",A3);
-//  sensorInputs[4] = new Quantity("V2",A4);
-//  sensorInputs[5] = new Quantity("V3",A5);
   phases[0] = new Phase("P1",A3,A0);
   phases[1] = new Phase("P2",A4,A1);
   phases[2] = new Phase("P3",A5,A2);
 
   Serial.println("Sensor quantities initialized.");
       
+  pinMode(HEARTBEAT,OUTPUT);
+  pinMode(LED,OUTPUT);    
   Serial.println("Initialization complete!");
-  // TMRArd_InitTimer(0, PRINT_TIME);
-//  sei();
 }
 
 void loop() {
@@ -92,43 +85,34 @@ void loop() {
   while (shieldGSM.available()) Serial.write(shieldGSM.read());
 
   if(flagAutoSMS) {
-    for(register int i=0;i< 1;i++) {
+    String message;
+    for(register int i=0;i<NUM_PHASES;i++) {
       Phase *p = phases[i];
-      p->getValues();
+      p->printMessage();
+      message += p->getMessage();
       p->clear();
     }
-
-//      sensorInputs[0]->getValues();
-//      sensorInputs[0]->clear();
-//      sensorInputs[3]->getValues();
-//      sensorInputs[3]->clear();
-      
-//    sendSMSMessage("message from loop");
-    Serial.println("message from loop");
+    Serial.println(message);
+    // sendSMSMessage(message);
     flagAutoSMS=false;
   }
 
-    pinMode(4,OUTPUT);
-    digitalWrite(4,HIGH);
-    
-    for(register int i=0;i<NUM_QUANTITY/2;i++){
+    digitalWrite(HEARTBEAT,HIGH);
+    for(register int i=0;i<NUM_PHASES;i++){
       Phase *p = phases[i];
       p->sampleSignal();
     }
-//    for(register int i=0;i< NUM_QUANTITY;i++) {
-//      Quantity *q = sensorInputs[i];
-//      q->sampleSignal();
-//    }
-    digitalWrite(4,LOW);
+    digitalWrite(HEARTBEAT,LOW);
 }
 
 char count = 0;
 ISR (TIMER1_COMPA_vect) { // timer one interrupt function
   count++;
-  if (count >=SMS_INTERRUPT_CYCLES) {
+  if (count >= SMS_INTERRUPT_CYCLES) {
     flagAutoSMS=true;
     count = 0;
   }
+  digitalWrite(LED, (digitalRead(LED) == HIGH) ? LOW : HIGH);
 }
 
 void executeATCommands(struct ATcommand *commandsList, int numCommands) {
@@ -165,8 +149,7 @@ void executeATCommands(struct ATcommand *commandsList, int numCommands) {
 // see http://www.geeetech.com/wiki/index.php/Arduino_GPRS_Shield
 void sendSMSMessage(String message) {
   String phoneNumberSet = "AT+CMGS=";
-  phoneNumberSet += PHONE_NUMBER;
-  
+  phoneNumberSet += PHONE_NUMBER;  
   struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = { ATcommand("AT+CMGF=1\r","\r\nOK\r\n") , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,"\r\n> ") , ATcommand(String((char)26),"\r\nOK\r\n") };
   executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
 }
@@ -248,7 +231,6 @@ void initializeTimerInterrupts() {
 
   sei();         // set enable interrupt reallow interrupts
   
-//  pinMode(OUTPUT_PIN,OUTPUT); 
   Serial.println("Timer interrupts initialized.");
 }
 

@@ -1,6 +1,6 @@
 #include "Phase.h"
 
-Phase::Phase(String n, unsigned int v, unsigned int i):
+Phase::Phase(String n, unsigned int v, unsigned int i) :
 	voltage("V",v),
 	current("I",i)
 {
@@ -31,34 +31,26 @@ void Phase::sampleSignal() {
 	}
 }
 
-void Phase::getValues() {
-	getName();
-	getRMS();
-	getPeriod();
-	getDelay();
-	Serial.println(delaysum);
-	Serial.println(numsamples);
+String Phase::getMessage() { //Vrms Irms period delay
+	String message = name;
+	message += ",Vrms=";
+	message += String(voltage.getRMS());
+	message += ",Irms=";
+	message += String(current.getRMS());
+	message += ",T=";
+	message += String(voltage.getPeriod());
+	message += ",Delay=";
+	message += String(getDelay());
+	message += ";\n";
+	return message;
 }
 
-void Phase::getName() {
-	Serial.println(name);
+String Phase::getName() {
+	return name;
 }
 
-void Phase::getPort() {
-	Serial.print(voltage.getName());
-	voltage.getPort();
-	Serial.print(current.getName());
-	current.getPort();
-}
-void Phase::getRMS(){
-	Serial.print(voltage.getName());
-	voltage.getRMS();
-	Serial.print(current.getName());
-	current.getRMS();
-}
-
-void Phase::getPeriod() {
-	voltage.getPeriod();
+unsigned int Phase::getPeriod() {
+	return voltage.getPeriod();
 }
 
 signed long Phase::getDelay() {
@@ -66,7 +58,34 @@ signed long Phase::getDelay() {
 	return delay;
 }
 
+void Phase::printMessage() {
+	printName();
+	printRMS();
+	printPeriod();
+	printDelay();
+	Serial.println(delaysum);
+	Serial.println(numsamples);
+}
+
+void Phase::printName() {
+	Serial.println(name);
+}
+
+void Phase::printRMS() {
+	Serial.print(voltage.getName());
+	Serial.print(": ");
+	Serial.println(voltage.getRMS());
+	Serial.print(current.getName());
+	Serial.print(": ");
+	Serial.println(current.getRMS());
+}
+
+void Phase::printPeriod() {
+	Serial.print("T: ");
+	Serial.println(voltage.getPeriod());
+}
+
 void Phase::printDelay() {
 	Serial.print("Delay: ");
-	Serial.println(delay);	
+	Serial.println(getDelay());	
 }
