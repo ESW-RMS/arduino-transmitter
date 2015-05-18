@@ -5,27 +5,27 @@ Phase::Phase(String n, unsigned int v, unsigned int i):
 	current("I",i)
 {
 	name = n;
-	pfsum = 0;
+	delaysum = 0;
 	numsamples = 0;
 }
 
 void Phase::clear() {
 	voltage.clear();
 	current.clear();
-	pfsum = 0;
-	numsamples=0;
+	delaysum = 0;
+	numsamples = 0;
 }
 
 void Phase::sampleSignal() {
 	voltage.sampleSignal();
 	current.sampleSignal(); 
 	if(!voltage.getReset()&&!current.getReset()){
-		signed long pftemp = (signed long) voltage.getMRRZ() - current.getMRRZ();	
-		if(pftemp < 0) {
-			pfsum += (pftemp + voltage.getFreq());
+		signed long delaytemp = (signed long) voltage.getMRRZ() - current.getMRRZ();	
+		if(delaytemp < 0) {
+			delaysum += (delaytemp + voltage.getPeriod());
 		}
 		else {
-			pfsum += pftemp;
+			delaysum += delaytemp;
 		}
 		numsamples++;
 	}
@@ -34,9 +34,9 @@ void Phase::sampleSignal() {
 void Phase::getValues() {
 	getName();
 	getRMS();
-	getFreq();
-	getPowerFactor();
-	Serial.println(pfsum);
+	getPeriod();
+	getDelay();
+	Serial.println(delaysum);
 	Serial.println(numsamples);
 }
 
@@ -57,13 +57,16 @@ void Phase::getRMS(){
 	current.getRMS();
 }
 
-void Phase::getFreq() {
-	voltage.getFreq();
+void Phase::getPeriod() {
+	voltage.getPeriod();
 }
 
-void Phase::getPowerFactor() {
-	pf = (signed long) ( (double) pfsum / numsamples);
-	Serial.print("Power factor: ");
-	Serial.println(pf);
-	// difference, need to turn into angle and call cosine
+signed long Phase::getDelay() {
+	delay = (signed long) ( (double) delaysum / numsamples);
+	return delay;
+}
+
+void Phase::printDelay() {
+	Serial.print("Delay: ");
+	Serial.println(delay);	
 }

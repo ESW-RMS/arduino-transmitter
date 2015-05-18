@@ -16,15 +16,17 @@ public:
 	void getName();
 	void getPort();
 	void getRMS();
-	void getFreq();
-	void getPowerFactor();
+	void getPeriod();
+	signed long getDelay(); 
+	void printDelay();
+	
 private:
 	String name;
 	Quantity voltage;
 	Quantity current;
-	// double pf; // power factor
-	signed long pf; // temporary; will be double eventually
-	signed long pfsum;
+	// double delay; // delay between voltage and current
+	signed long delay; // temporary; will be double eventually
+	signed long delaysum;
 	unsigned int numsamples;
 };
 

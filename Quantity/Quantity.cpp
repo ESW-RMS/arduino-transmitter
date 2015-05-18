@@ -13,11 +13,11 @@ void Quantity::clear() {
 	rms = 0;
 
 	mrrz = 0; // micro/milli second value
-	freq = 0;
+	period = 0;
 
 	// variables per hour
 	maxsum = 0; 
-	freqsum = 0;
+	periodsum = 0;
 	numcycles = 0;
 	reset = true;
 }
@@ -35,7 +35,7 @@ void Quantity::sampleSignal() {
       reset=false;
    	}
     else {
-      freqsum += crosstime - mrrz;
+      periodsum += crosstime - mrrz;
       numcycles++;
     }
 
@@ -76,10 +76,14 @@ void Quantity::getMax(){
 	Serial.println(max);	
 }
 
-void Quantity::getRMS(){
+unsigned int Quantity::getRMS(){
 	rms = (unsigned int) (0.707 * ( (double) maxsum/numcycles - ZERO));
+	return rms;
+}
+
+void Quantity::printRMS() {
 	Serial.print("rms: ");
-	Serial.println(rms);
+	Serial.println(rms);	
 }
 
 unsigned long Quantity::getMRRZ(){
@@ -91,14 +95,14 @@ void Quantity::printMRRZ(){
 	Serial.println(mrrz);	
 }
 
-unsigned int Quantity::getFreq(){
-	freq = (unsigned int) ( (double) freqsum/numcycles);
-	return freq;
+unsigned int Quantity::getPeriod(){
+	period = (unsigned int) ( (double) periodsum/numcycles);
+	return period;
 }
 
-void Quantity::printFreq() {
-	Serial.print("freq: ");
-	Serial.println(freq);	
+void Quantity::printPeriod() {
+	Serial.print("period: ");
+	Serial.println(period);	
 	
 }
 
@@ -107,9 +111,9 @@ void Quantity::getMaxSum(){
 	Serial.println(maxsum);	
 }
 
-void Quantity::getFreqSum(){
-	Serial.print("freqsum: ");
-	Serial.println(freqsum);
+void Quantity::getPeriodSum(){
+	Serial.print("periodsum: ");
+	Serial.println(periodsum);
 }
 
 unsigned int Quantity::getNumCycles(){
@@ -138,12 +142,12 @@ void Quantity::getValues() {
 
 	Serial.print("mrrz: ");
 	Serial.println(mrrz);
-	getFreq();
+	getPeriod();
 
 	Serial.print("maxsum: ");
 	Serial.println(maxsum);
-	Serial.print("freqsum: ");
-	Serial.println(freqsum);
+	Serial.print("periodsum: ");
+	Serial.println(periodsum);
 
 	Serial.print("numcycles: ");
 	Serial.println(numcycles);

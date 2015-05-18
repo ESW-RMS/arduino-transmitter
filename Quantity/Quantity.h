@@ -20,13 +20,14 @@ public:
 	void getSamp();
 	void getPrevSamp();
 	void getMax();
-	void getRMS();
+	unsigned int getRMS();
+	void printRMS();
 	unsigned long getMRRZ();
 	void printMRRZ();
-	unsigned int getFreq();
-	void printFreq();
+	unsigned int getPeriod();
+	void printPeriod();
 	void getMaxSum();
-	void getFreqSum();
+	void getPeriodSum();
 	unsigned int getNumCycles();
 	bool getReset();
 
@@ -41,12 +42,12 @@ private:
 	unsigned int max;
 
 	unsigned long mrrz; // micro/milli second value
-	unsigned int freq;
+	unsigned int period;
 
 	// variables per hour
 	unsigned int rms;  // need to set bounds for under/overflow if this yields a negative result
 	unsigned long maxsum; 
-	unsigned long freqsum;
+	unsigned long periodsum;
 	unsigned int  numcycles;
 	bool reset;
 };
@@ -62,7 +63,7 @@ struct quantity {
   unsigned long rms;
   unsigned long maxsum;
   
-  unsigned long mrrz; // most recent raising over zero, need to consider the case right after we send a text since mrrz would create a freq to high
+  unsigned long mrrz; // most recent raising over zero, need to consider the case right after we send a text since mrrz would create a period to high
   unsigned long freq;
   int cycl;  
   
