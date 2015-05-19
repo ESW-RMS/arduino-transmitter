@@ -16,7 +16,7 @@ public:
 	String getName();
 	//unsigned int getPort();
 	//unsigned int getRMS();
-	unsigned int getPeriod();
+	unsigned long getPeriod();
 	signed long getDelay();
 
 	void printMessage();

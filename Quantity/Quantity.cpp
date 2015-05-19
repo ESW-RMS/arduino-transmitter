@@ -48,32 +48,24 @@ void Quantity::sampleSignal() {
 	prevsamp = samp;
 }
 
-void Quantity::printName(){
-	Serial.println(name);	
-}
-
 String Quantity::getName() {
 	return name;
 }
 
-void Quantity::getPort(){
-	Serial.print("port: ");
-	Serial.println(port);	
+unsigned int Quantity::getPort(){
+	return port;
 }
 
-void Quantity::getSamp(){
-	Serial.print("samp: ");
-	Serial.println(samp);	
+unsigned int Quantity::getSamp(){
+	return samp;
 }
 
-void Quantity::getPrevSamp(){
-	Serial.print("prevsamp: ");
-	Serial.println(prevsamp);	
+unsigned int Quantity::getPrevSamp(){
+	return prevsamp;
 }
 
-void Quantity::getMax(){
-	Serial.print("max: ");
-	Serial.println(max);	
+unsigned int Quantity::getMax(){
+	return max;
 }
 
 unsigned int Quantity::getRMS(){
@@ -81,44 +73,24 @@ unsigned int Quantity::getRMS(){
 	return rms;
 }
 
-void Quantity::printRMS() {
-	Serial.print("rms: ");
-	Serial.println(rms);	
-}
-
 unsigned long Quantity::getMRRZ(){
 	return mrrz;
 }
 
-void Quantity::printMRRZ(){
-	Serial.print("mrrz: ");
-	Serial.println(mrrz);	
-}
-
-unsigned int Quantity::getPeriod(){
-	period = (unsigned int) ( (double) periodsum/numcycles);
+unsigned long Quantity::getPeriod(){
+	period = (unsigned long) ( (double) periodsum/numcycles);
 	return period;
 }
 
-void Quantity::printPeriod() {
-	Serial.print("period: ");
-	Serial.println(period);	
-	
+unsigned long Quantity::getMaxSum(){
+	return maxsum;
 }
 
-void Quantity::getMaxSum(){
-	Serial.print("maxsum: ");
-	Serial.println(maxsum);	
+unsigned long Quantity::getPeriodSum(){
+	return periodsum;
 }
 
-void Quantity::getPeriodSum(){
-	Serial.print("periodsum: ");
-	Serial.println(periodsum);
-}
-
-unsigned int Quantity::getNumCycles(){
-	Serial.print("numcycles: ");
-	Serial.println(numcycles);
+unsigned long Quantity::getNumCycles(){
 	return numcycles;
 }
 
@@ -126,7 +98,7 @@ bool Quantity::getReset() {
 	return reset;
 }
 
-void Quantity::getValues() {
+void Quantity::printValues() {
 	Serial.println(name);
 	Serial.print("port: ");
 	Serial.println(port);
@@ -151,6 +123,66 @@ void Quantity::getValues() {
 
 	Serial.print("numcycles: ");
 	Serial.println(numcycles);
+	Serial.print("reset: ");
+	Serial.println(reset ? "true" : "false");
+}
+
+void Quantity::printName(){
+	Serial.println(name);	
+}
+
+void Quantity::printPort(){
+	Serial.print("port: ");
+	Serial.println(port);	
+}
+
+void Quantity::printSamp(){
+	Serial.print("samp: ");
+	Serial.println(samp);	
+}
+
+void Quantity::printPrevSamp(){
+	Serial.print("prevsamp: ");
+	Serial.println(prevsamp);	
+}
+
+void Quantity::printMax(){
+	Serial.print("max: ");
+	Serial.println(max);	
+}
+
+void Quantity::printRMS() {
+	Serial.print("rms: ");
+	Serial.println(getRMS());	
+}
+
+void Quantity::printMRRZ(){
+	Serial.print("mrrz: ");
+	Serial.println(mrrz);	
+}
+
+void Quantity::printPeriod() {
+	Serial.print("period: ");
+	Serial.println(period);	
+	
+}
+
+void Quantity::printMaxSum(){
+	Serial.print("maxsum: ");
+	Serial.println(maxsum);	
+}
+
+void Quantity::printPeriodSum(){
+	Serial.print("periodsum: ");
+	Serial.println(periodsum);
+}
+
+void Quantity::printNumCycles(){
+	Serial.print("numcycles: ");
+	Serial.println(numcycles);
+}
+
+void Quantity::printReset() {
 	Serial.print("reset: ");
 	Serial.println(reset ? "true" : "false");
 }

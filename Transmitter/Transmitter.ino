@@ -33,7 +33,7 @@
 #define INIT_WAIT_CODE -1
 #define INIT_ERROR_CODE -2
 #define INIT_TIMEOUT_CODE -3
-#define INIT_TIME 1000
+#define INIT_TIME 5000
 #define COMPARE_MATCH_REGISTER 62499 // [16 MHz / (1024 * 1/4 Hz) ] - 1
 #define ANALOG_PIN_OFFSET 3
 #define NUM_QUANTITY 6
@@ -41,7 +41,7 @@
 #define PHASE_NUMBER_OFFSET 13
 #define HEARTBEAT 4
 #define LED 13
-#define SMS_SEND_PERIOD 12                                   // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 32                                   // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest integer numbers of second a timer interrupt is achievable with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 #define NUM_SMS_COMMANDS 4
@@ -93,7 +93,7 @@ void loop() {
       p->clear();
     }
     Serial.println(message);
-    // sendSMSMessage(message);
+    //sendSMSMessage(message);
     flagAutoSMS=false;
   }
 
