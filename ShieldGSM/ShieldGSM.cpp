@@ -112,11 +112,11 @@ void ShieldGSM::verifyGSMOn() {
   Serial.println("GSM Shield is on.");
 }
 
-// void synchronizeLocalTime() {
-  // struct ATcommand setupCommands[NUM_INIT_COMMANDS] = { ATcommand("AT","\r\nOK\r\n") , ATcommand("AT+CLTS=1","\r\nOK\r\n") , ATcommand("AT+CFUN=0","\r\nOK\r\n") , ATcommand("AT+CFUN=1","\r\nOK\r\n") , ATcommand("AT+CCLK?","\r\nOK\r\n") };
-  // executeATCommands(setupCommands, NUM_INIT_COMMANDS);
-  // Serial.println("Synchronized to local time.");
-// }
+void ShieldGSM::synchronizeLocalTime() {
+  struct ATcommand setupCommands[NUM_INIT_COMMANDS] = { ATcommand("AT","\r\nOK\r\n") , ATcommand("AT+CLTS=1","\r\nOK\r\n") , ATcommand("AT+CFUN=0","\r\nOK\r\n") , ATcommand("AT+CFUN=1","\r\nOK\r\n") , ATcommand("AT+CCLK?","\r\nOK\r\n") };
+  executeATCommands(setupCommands, NUM_INIT_COMMANDS);
+  Serial.println("Synchronized to local time.");
+}
 
 void ShieldGSM::sendSMSMessage(String message, String phoneNumber) {
   String phoneNumberSet = "AT+CMGS=";

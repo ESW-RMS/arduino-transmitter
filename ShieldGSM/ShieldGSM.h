@@ -37,7 +37,7 @@ public:
 	
 	void executeATCommands(struct ATcommand *commandslist, int numCommands);
 	void verifyGSMOn();
-//	void synchronizeLocalTime();
+	void synchronizeLocalTime();
 	void sendSMSMessage(String message, String phoneNumber);
 
 private:
