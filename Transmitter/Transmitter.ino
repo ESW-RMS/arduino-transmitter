@@ -80,7 +80,7 @@ void loop() {
       p->clear();
     }
     Serial.println(message);
-    //transmitter->sendSMSMessage(message);
+    transmitter->sendSMSMessage(message, PHONE_NUMBER);
     flagAutoSMS=false;
   }
 
