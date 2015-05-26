@@ -48,12 +48,13 @@ boolean flagAutoSMS;
 
 Phase *phases[3];
 ShieldGSM *transmitter;
+SoftwareSerial mySerial(7,8);
 
 void setup() {
   Serial.begin(BAUD_RATE);
 
   transmitter = new ShieldGSM(7,8,BAUD_RATE);
-  transmitter->verifyGSMOn();
+//  transmitter->verifyGSMOn();
 
   initializeTimerInterrupts();
 
@@ -68,10 +69,14 @@ void setup() {
 }
 
 void loop() {
-  transmitter->pollUserCommand();
+//  transmitter->pollUserCommand();
   while (transmitter->avail()) Serial.write(transmitter->read());
 
-  if(flagAutoSMS) {
+//  if(flagAutoSMS) {
+  if(Serial.available()) {
+//    while(Serial.available()){
+//      Serial.read();
+//    }
     String message;
     for(register int i=0;i<NUM_PHASES;i++) {
       Phase *p = phases[i];
@@ -83,6 +88,7 @@ void loop() {
     transmitter->sendSMSMessage(message, PHONE_NUMBER);
     flagAutoSMS=false;
   }
+  transmitter->pollUserCommand();
 
     digitalWrite(HEARTBEAT,HIGH);
     for(register int i=0;i<NUM_PHASES;i++){

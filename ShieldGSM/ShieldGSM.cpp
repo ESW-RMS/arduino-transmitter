@@ -79,7 +79,7 @@ void ShieldGSM::executeATCommands(struct ATcommand *commandsList, int numCommand
       int state = INIT_WAIT_CODE; 
       TMRArd_InitTimer(0, INIT_TIME);
       Serial.print(i);
-      executeUserCommand(atc.cmd);
+      executeUserCommand(atc.cmd.c_str());
       do {
         state = printShieldGSMResponse(atc.resp);
         if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
@@ -118,9 +118,12 @@ void ShieldGSM::synchronizeLocalTime() {
   Serial.println("Synchronized to local time.");
 }
 
+// create wrapper function for sendsmsmessage
+// check message length and verify less than 70 characters
+
 void ShieldGSM::sendSMSMessage(String message, String phoneNumber) {
   String phoneNumberSet = "AT+CMGS=";
   phoneNumberSet += phoneNumber;  
-  struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = { ATcommand("AT+CMGF=1\r","\r\nOK\r\n") , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,"\r\n> ") , ATcommand(String((char)26),"\r\nOK\r\n") };
+  struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = {  ATcommand("AT+CMGF=1\r","\r\nOK\r\n") , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,"\r\n> ") , ATcommand(String((char)26),"\r\nOK\r\n") };
   executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
 }
