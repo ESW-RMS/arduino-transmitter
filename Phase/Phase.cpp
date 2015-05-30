@@ -32,14 +32,14 @@ void Phase::sampleSignal() {
 }
 
 String Phase::getMessage() { //Vrms Irms period delay
-	String message = String(voltage.getRMS());
+	String message = String(voltage.getMaxAvg());
 	message += ",";
-	message += String(current.getRMS());
+	message += String(current.getMaxAvg());
 	message += ",";
 	message += String(voltage.getPeriod());
 	message += ",";
 	message += String(getDelay());
-	message += ";";
+	message += ",";
 	return message;
 }
 

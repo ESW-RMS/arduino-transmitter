@@ -18,7 +18,7 @@ public:
 	unsigned int getPort();
 	unsigned int getSamp();
 	unsigned int getPrevSamp();
-	unsigned int getMax();
+	unsigned int getMaxAvg();
 	unsigned int getRMS();
 	unsigned long getMRRZ();
 	unsigned long getPeriod();
@@ -50,7 +50,8 @@ private:
 	unsigned int samp;
 	unsigned int prevsamp;
 	unsigned int max;
-
+	unsigned int max_avg;
+	
 	unsigned long mrrz; // micro/milli second value
 	unsigned long period;
 

@@ -39,6 +39,7 @@ public:
 	void verifyGSMOn();
 	void synchronizeLocalTime();
 	void sendSMSMessage(String message, String phoneNumber);
+	void sendMessageLong(String message, String phoneNumber);
 
 private:
 	SoftwareSerial GSMShield;

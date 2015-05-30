@@ -34,7 +34,10 @@ void Quantity::sampleSignal() {
     if (reset) {
       reset=false;
    	}
-    else {
+    else if (crosstime < mrrz){
+		clear();
+	}
+	else {
       periodsum += crosstime - mrrz;
       numcycles++;
     }
@@ -64,8 +67,9 @@ unsigned int Quantity::getPrevSamp(){
 	return prevsamp;
 }
 
-unsigned int Quantity::getMax(){
-	return max;
+unsigned int Quantity::getMaxAvg(){
+	max_avg = (unsigned int) ( (double) maxsum/numcycles - ZERO);	
+	return max_avg;
 }
 
 unsigned int Quantity::getRMS(){

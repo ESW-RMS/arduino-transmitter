@@ -118,12 +118,18 @@ void ShieldGSM::synchronizeLocalTime() {
   Serial.println("Synchronized to local time.");
 }
 
-// create wrapper function for sendsmsmessage
-// check message length and verify less than 70 characters
-
 void ShieldGSM::sendSMSMessage(String message, String phoneNumber) {
   String phoneNumberSet = "AT+CMGS=";
   phoneNumberSet += phoneNumber;  
   struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = {  ATcommand("AT+CMGF=1\r","\r\nOK\r\n") , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,"\r\n> ") , ATcommand(String((char)26),"\r\nOK\r\n") };
   executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
+}
+
+void ShieldGSM::sendMessageLong(String message, String phoneNumber) {
+	do {
+		int len = message.length();
+		int endIndex = len <70 ? len : 69;
+		sendSMSMessage(message.substring(0,endIndex), phoneNumber);
+		message = message.substring(endIndex);
+	} while(message.length() > 0);
 }

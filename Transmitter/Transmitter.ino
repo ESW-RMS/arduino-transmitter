@@ -85,7 +85,8 @@ void loop() {
       p->clear();
     }
     Serial.println(message);
-    transmitter->sendSMSMessage(message, PHONE_NUMBER);
+    //implement messagelong to prevent overflow
+    transmitter->sendSMSMessage("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", PHONE_NUMBER);
     flagAutoSMS=false;
   }
   transmitter->pollUserCommand();
