@@ -79,7 +79,7 @@ void ShieldGSM::executeATCommands(struct ATcommand *commandsList, int numCommand
       int state = INIT_WAIT_CODE; 
       TMRArd_InitTimer(0, INIT_TIME);
       Serial.print(i);
-      executeUserCommand(atc.cmd.c_str());
+      executeUserCommand(atc.cmd);
       do {
         state = printShieldGSMResponse(atc.resp);
         if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
@@ -118,18 +118,20 @@ void ShieldGSM::synchronizeLocalTime() {
   Serial.println("Synchronized to local time.");
 }
 
-void ShieldGSM::sendSMSMessage(String message, String phoneNumber) {
+void ShieldGSM::sendSMSSplice(String message, String phoneNumber) {
   String phoneNumberSet = "AT+CMGS=";
   phoneNumberSet += phoneNumber;  
   struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = {  ATcommand("AT+CMGF=1\r","\r\nOK\r\n") , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,"\r\n> ") , ATcommand(String((char)26),"\r\nOK\r\n") };
+  Serial.println(message); 
   executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
 }
 
-void ShieldGSM::sendMessageLong(String message, String phoneNumber) {
+void ShieldGSM::sendSMSMessage(String message, String phoneNumber) {
 	do {
+		Serial.println("begin do while");
 		int len = message.length();
 		int endIndex = len <70 ? len : 69;
-		sendSMSMessage(message.substring(0,endIndex), phoneNumber);
+		sendSMSSplice(message.substring(0,endIndex), phoneNumber);
 		message = message.substring(endIndex);
 	} while(message.length() > 0);
 }
