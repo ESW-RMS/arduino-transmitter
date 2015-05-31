@@ -34,8 +34,8 @@ char ShieldGSM::read() {
 	return GSMShield.read();
 }
 
-void ShieldGSM::executeUserCommand(String buffer) {
-  buffer.trim();
+void ShieldGSM::executeUserCommand(const char *buffer) {
+//  buffer.trim();
   Serial.println(buffer);
   GSMShield.println(buffer);
 }
@@ -45,14 +45,13 @@ void ShieldGSM::pollUserCommand() {
   if (avail) {
     Serial.println(millis());
     String buffer = Serial.readString();
-    executeUserCommand(buffer);  
+    executeUserCommand(buffer.c_str());  
   }
 }
 
 int ShieldGSM::printShieldGSMResponse(String resp) {
   int result = INIT_WAIT_CODE;
   String serialOutput;
-  String okString = "\r\nOK\r\n";
   String errorString = "ERROR";
   while(GSMShield.available()) {
     char c = GSMShield.read();
@@ -79,7 +78,7 @@ void ShieldGSM::executeATCommands(struct ATcommand *commandsList, int numCommand
       int state = INIT_WAIT_CODE; 
       TMRArd_InitTimer(0, INIT_TIME);
       Serial.print(i);
-      executeUserCommand(atc.cmd);
+      executeUserCommand(atc.cmd.c_str());
       do {
         state = printShieldGSMResponse(atc.resp);
         if (state == INIT_WAIT_CODE && TMRArd_IsTimerExpired(0)) {
@@ -93,12 +92,15 @@ void ShieldGSM::executeATCommands(struct ATcommand *commandsList, int numCommand
           case INIT_TIMEOUT_CODE:
             Serial.println("COMMAND TIMEOUT: "+String(++tocount));  // intentionally no break
           case INIT_ERROR_CODE:
-            executeUserCommand(atc.cmd);
+            executeUserCommand(atc.cmd.c_str());
             break;
           default:
             break;
         }   
-        if(tocount>=3)return;
+        if(tocount>=3){
+			executeUserCommand(CTRL_Z.c_str());
+			return;
+		}
       } while(state != INIT_SUCCESS_CODE);
     }
 }
@@ -113,7 +115,7 @@ void ShieldGSM::verifyGSMOn() {
 }
 
 void ShieldGSM::synchronizeLocalTime() {
-  struct ATcommand setupCommands[NUM_INIT_COMMANDS] = { ATcommand("AT","\r\nOK\r\n") , ATcommand("AT+CLTS=1","\r\nOK\r\n") , ATcommand("AT+CFUN=0","\r\nOK\r\n") , ATcommand("AT+CFUN=1","\r\nOK\r\n") , ATcommand("AT+CCLK?","\r\nOK\r\n") };
+  struct ATcommand setupCommands[NUM_INIT_COMMANDS] = { ATcommand("AT",OK_RESP) , ATcommand("AT+CLTS=1",OK_RESP) , ATcommand("AT+CFUN=0",OK_RESP) , ATcommand("AT+CFUN=1",OK_RESP) , ATcommand("AT+CCLK?",OK_RESP) };
   executeATCommands(setupCommands, NUM_INIT_COMMANDS);
   Serial.println("Synchronized to local time.");
 }
@@ -121,17 +123,31 @@ void ShieldGSM::synchronizeLocalTime() {
 void ShieldGSM::sendSMSSplice(String message, String phoneNumber) {
   String phoneNumberSet = "AT+CMGS=";
   phoneNumberSet += phoneNumber;  
-  struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = {  ATcommand("AT+CMGF=1\r","\r\nOK\r\n") , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,"\r\n> ") , ATcommand(String((char)26),"\r\nOK\r\n") };
-  Serial.println(message); 
+//  struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = {  ATcommand("AT+CMGF=1\r",OK_RESP) , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,"\r\n> ") , ATcommand(CTRL_Z,OK_RESP) };
+  struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = {  ATcommand("AT+CMGF=1\r",OK_RESP) , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message+CTRL_Z,OK_RESP) };
+   Serial.println(message);
+  // sendSMSCommands[2].cmd = message+CTRL_Z;
+   Serial.println(sendSMSCommands[2].cmd); //print out the message
   executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
 }
 
 void ShieldGSM::sendSMSMessage(String message, String phoneNumber) {
-	do {
-		Serial.println("begin do while");
+//	do {
+		//Serial.println("begin do while");
 		int len = message.length();
-		int endIndex = len <70 ? len : 69;
-		sendSMSSplice(message.substring(0,endIndex), phoneNumber);
-		message = message.substring(endIndex);
-	} while(message.length() > 0);
+		Serial.println(len);
+		if (len < 70) {
+			Serial.println("short messages are okay");
+			sendSMSSplice(message.substring(0), phoneNumber);
+		}
+		else {
+			Serial.println("text 1/2");
+			sendSMSSplice(message.substring(0,69),phoneNumber);
+			Serial.println("text 2/2");
+			sendSMSSplice(message.substring(69),phoneNumber);
+		}
+		// int endIndex = len <70 ? len : 69;
+		// sendSMSSplice(message.substring(0,endIndex), phoneNumber);
+		// message = message.substring(endIndex);
+//	} while(message.length() > 0);
 }

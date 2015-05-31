@@ -21,8 +21,13 @@ void Phase::sampleSignal() {
 	current.sampleSignal(); 
 	if(!voltage.getReset()&&!current.getReset()){
 		signed long delaytemp = (signed long) voltage.getMRRZ() - current.getMRRZ();	
+		delaytemp %= voltage.getPeriod();
 		if(delaytemp < 0) {
 			delaysum += (delaytemp + voltage.getPeriod());
+			if (-delaytemp > voltage.getPeriod()) {
+				Serial.println(delaytemp);
+				Serial.println(voltage.getPeriod());
+			}
 		}
 		else {
 			delaysum += delaytemp;

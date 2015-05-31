@@ -33,7 +33,7 @@ private:
 	// double delay; // delay between voltage and current
 	signed long delay; // temporary; will be double eventually
 	signed long delaysum;
-	unsigned int numsamples;
+	unsigned long numsamples;
 };
 
 #endif

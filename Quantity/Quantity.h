@@ -59,7 +59,7 @@ private:
 	unsigned int rms;  // need to set bounds for under/overflow if this yields a negative result
 	unsigned long maxsum; 
 	unsigned long periodsum;
-	unsigned long  numcycles;
+	unsigned long numcycles;
 	bool reset;
 };
 

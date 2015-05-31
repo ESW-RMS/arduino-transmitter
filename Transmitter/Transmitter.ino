@@ -9,7 +9,7 @@
  * Authors: Evan Giarta, egiarta1671
  *          Evelyn Li, 0evelyn
  *
- * Version: V3, 2015.05.22
+ * Version: V4, 2015.05.30
  * 
  * Timer Interrupt code modified from http://www.instructables.com/id/Arduino-Timer-Interrupts/?ALLSTEPS
  * Note, many macro values are defined in <avr/io.h> and
@@ -27,28 +27,23 @@
 
 #define BAUD_RATE 19200
 
-#define STANDARD_DELAY 1500
-
-#define ANALOG_PIN_OFFSET 3
 #define NUM_QUANTITY 6
 #define NUM_PHASES NUM_QUANTITY/2
-#define PHASE_NUMBER_OFFSET 13
 
 #define HEARTBEAT 4
 #define LED 13
 
 #define COMPARE_MATCH_REGISTER 62499 // [16 MHz / (1024 * 1/4 Hz) ] - 1
-#define SMS_SEND_PERIOD 32 // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 60 // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest achievable number of seconds with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
-#define PHONE_NUMBER "\"+15594929868\""
+#define PHONE_NUMBER "\"+15594929868\"" // change this to receiver phone number
 
 boolean flagSendSMS;
 boolean flagAutoSMS;
 
-Phase *phases[3];
+Phase *phases[NUM_PHASES];
 ShieldGSM *transmitter;
-SoftwareSerial mySerial(7,8);
 
 void setup() {
   Serial.begin(BAUD_RATE);
@@ -72,31 +67,45 @@ void loop() {
 //  transmitter->pollUserCommand();
   while (transmitter->avail()) Serial.write(transmitter->read());
 
-//  if(flagAutoSMS) {
-  if(Serial.available()) {
-//    while(Serial.available()){
-//      Serial.read();
-//    }
+  if(Serial.available()) { // this is to get SMS upon request, by typing into Serial Monitor
+//  if(flagAutoSMS) { // this option will send the SMS when SMS_SEND_PERIOD is reached
     String message;
     for(register int i=0;i<NUM_PHASES;i++) {
       Phase *p = phases[i];
-      p->printMessage();
+      //p->printMessage();
       message += p->getMessage();
       p->clear();
     }
     Serial.println(message);
-    //implement messagelong to prevent overflow
-    transmitter->sendSMSMessage("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", PHONE_NUMBER);
+    
+//    transmitter->sendSMSSplice(message,PHONE_NUMBER);
+
+  message="abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+	int len = message.length();
+	Serial.println(len);
+	if (len < 69) {
+		Serial.println("short messages are okay");
+		transmitter->sendSMSSplice(message, PHONE_NUMBER);
+	}
+	else {
+		Serial.println("text 1/2");
+		transmitter->sendSMSSplice(message.substring(0,68),PHONE_NUMBER);
+		Serial.println("text 2/2");
+		transmitter->sendSMSSplice(message.substring(68),PHONE_NUMBER);
+	}
+
+//    transmitter->sendSMSSplice("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", PHONE_NUMBER);
+//    transmitter->sendSMSMessage(message, PHONE_NUMBER);
     flagAutoSMS=false;
   }
   transmitter->pollUserCommand();
 
-    digitalWrite(HEARTBEAT,HIGH);
-    for(register int i=0;i<NUM_PHASES;i++){
-      Phase *p = phases[i];
-      p->sampleSignal();
-    }
-    digitalWrite(HEARTBEAT,LOW);
+  digitalWrite(HEARTBEAT,HIGH);
+  for(register int i=0;i<NUM_PHASES;i++){
+    Phase *p = phases[i];
+    p->sampleSignal();
+  }
+  digitalWrite(HEARTBEAT,LOW);
 }
 
 char count = 0;
@@ -120,7 +129,7 @@ void initializeTimerInterrupts() {
   TCCR1B |= (1 << CS12) | (1 << CS10); // set 1024 prescale factor
   TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
 
-  sei();         // set enable interrupt reallow interrupts
+  sei();         // set enable interrupt: reallow interrupts
   
   Serial.println("Timer interrupts initialized.");
 }
