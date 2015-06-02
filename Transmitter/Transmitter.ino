@@ -76,23 +76,24 @@ void loop() {
       message += p->getMessage();
       p->clear();
     }
+    message += ";";
     Serial.println(message);
     
-//    transmitter->sendSMSSplice(message,PHONE_NUMBER);
+    transmitter->sendSMSSplice(message,PHONE_NUMBER);
 
-  message="abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
-	int len = message.length();
-	Serial.println(len);
-	if (len < 69) {
-		Serial.println("short messages are okay");
-		transmitter->sendSMSSplice(message, PHONE_NUMBER);
-	}
-	else {
-		Serial.println("text 1/2");
-		transmitter->sendSMSSplice(message.substring(0,68),PHONE_NUMBER);
-		Serial.println("text 2/2");
-		transmitter->sendSMSSplice(message.substring(68),PHONE_NUMBER);
-	}
+//  message="abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+//	int len = message.length();
+//	Serial.println(len);
+//	if (len < 69) {
+//		Serial.println("short messages are okay");
+//		transmitter->sendSMSSplice(message, PHONE_NUMBER);
+//	}
+//	else {
+//		Serial.println("text 1/2");
+//		transmitter->sendSMSSplice(message.substring(0,68),PHONE_NUMBER);
+//		Serial.println("text 2/2");
+//		transmitter->sendSMSSplice(message.substring(68),PHONE_NUMBER);
+//	}
 
 //    transmitter->sendSMSSplice("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", PHONE_NUMBER);
 //    transmitter->sendSMSMessage(message, PHONE_NUMBER);
