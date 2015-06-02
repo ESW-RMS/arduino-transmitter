@@ -37,7 +37,7 @@
 #define SMS_SEND_PERIOD 60 // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest achievable number of seconds with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
-#define PHONE_NUMBER "\"+15594929868\"" // change this to receiver phone number
+#define PHONE_NUMBER "\"+16503055867\"" // change this to receiver phone number
 
 boolean flagSendSMS;
 boolean flagAutoSMS;
@@ -67,8 +67,8 @@ void loop() {
 //  transmitter->pollUserCommand();
   while (transmitter->avail()) Serial.write(transmitter->read());
 
-  if(Serial.available()) { // this is to get SMS upon request, by typing into Serial Monitor
-//  if(flagAutoSMS) { // this option will send the SMS when SMS_SEND_PERIOD is reached
+//  if(Serial.available()) { // this is to get SMS upon request, by typing into Serial Monitor
+  if(flagAutoSMS) { // this option will send the SMS when SMS_SEND_PERIOD is reached
     String message;
     for(register int i=0;i<NUM_PHASES;i++) {
       Phase *p = phases[i];
