@@ -34,12 +34,11 @@
 #define LED 13
 
 #define COMPARE_MATCH_REGISTER 62499 // [16 MHz / (1024 * 1/4 Hz) ] - 1
-#define SMS_SEND_PERIOD 60 // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 3600 // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest achievable number of seconds with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
 #define PHONE_NUMBER "\"+16503055867\"" // change this to receiver phone number
 
-boolean flagSendSMS;
 boolean flagAutoSMS;
 
 Phase *phases[NUM_PHASES];
@@ -49,7 +48,7 @@ void setup() {
   Serial.begin(BAUD_RATE);
 
   transmitter = new ShieldGSM(7,8,BAUD_RATE);
-//  transmitter->verifyGSMOn();
+  transmitter->verifyGSMOn();
 
   initializeTimerInterrupts();
 
@@ -72,7 +71,6 @@ void loop() {
     String message;
     for(register int i=0;i<NUM_PHASES;i++) {
       Phase *p = phases[i];
-      //p->printMessage();
       message += p->getMessage();
       p->clear();
     }
@@ -81,22 +79,6 @@ void loop() {
     
     transmitter->sendSMSSplice(message,PHONE_NUMBER);
 
-//  message="abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
-//	int len = message.length();
-//	Serial.println(len);
-//	if (len < 69) {
-//		Serial.println("short messages are okay");
-//		transmitter->sendSMSSplice(message, PHONE_NUMBER);
-//	}
-//	else {
-//		Serial.println("text 1/2");
-//		transmitter->sendSMSSplice(message.substring(0,68),PHONE_NUMBER);
-//		Serial.println("text 2/2");
-//		transmitter->sendSMSSplice(message.substring(68),PHONE_NUMBER);
-//	}
-
-//    transmitter->sendSMSSplice("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz", PHONE_NUMBER);
-//    transmitter->sendSMSMessage(message, PHONE_NUMBER);
     flagAutoSMS=false;
   }
   transmitter->pollUserCommand();
@@ -109,7 +91,7 @@ void loop() {
   digitalWrite(HEARTBEAT,LOW);
 }
 
-char count = 0;
+unsigned int count = 0;
 ISR (TIMER1_COMPA_vect) {
   count++;
   if (count >= SMS_INTERRUPT_CYCLES) {
