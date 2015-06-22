@@ -21,19 +21,34 @@ void Phase::sampleSignal() {
 	current.sampleSignal(); 
 	if(!voltage.getReset()&&!current.getReset()){
 		signed long delaytemp = (signed long) voltage.getMRRZ() - current.getMRRZ();	
+		signed long delaysumtemp = delaysum;
 		delaytemp %= voltage.getPeriod();
-		if(delaytemp < 0) {
-			delaysum += (delaytemp + voltage.getPeriod());
+		if(voltage.getPeriod()!=0) {
+			if(delaytemp<0) {
+				delaysum += (delaytemp + voltage.getPeriod());
+			}
+			else {
+				delaysum += delaytemp;
+			}
+			
+/* 			if(delaysumtemp > delaysum) {
+				Serial.println("Overflow on sample: "+numsamples);
+			} */
+			numsamples++;
+		}
+		
+/* 		if(delaytemp < 0) {
 			if (-delaytemp > voltage.getPeriod()) {
 				Serial.println(delaytemp);
 				Serial.println(voltage.getPeriod());
 			}
+			delaysum += (delaytemp + voltage.getPeriod());
 		}
 		else {
 			delaysum += delaytemp;
 		}
 		numsamples++;
-	}
+ */	}
 }
 
 String Phase::getMessage() { //Vrms Irms period delay
