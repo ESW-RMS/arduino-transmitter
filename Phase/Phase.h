@@ -25,6 +25,7 @@ public:
 	void printRMS();
 	void printPeriod();
 	void printDelay();
+	void printNumSamp();
 	
 private:
 	String name;
@@ -33,7 +34,8 @@ private:
 	// double delay; // delay between voltage and current
 	signed long delay; // temporary; will be double eventually
 	unsigned long prevdelay;
-	unsigned long delaysum;
+	signed long delaysum;
+	int overflows;
 	unsigned long numsamples;
 };
 
