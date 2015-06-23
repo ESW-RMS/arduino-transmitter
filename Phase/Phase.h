@@ -25,7 +25,6 @@ public:
 	void printRMS();
 	void printPeriod();
 	void printDelay();
-	void printNumSamp();
 	
 private:
 	String name;

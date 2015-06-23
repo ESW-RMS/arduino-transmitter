@@ -72,7 +72,6 @@ void loop() {
     for(register int i=0;i<NUM_PHASES;i++) {
       Phase *p = phases[i];
       message += p->getMessage();
-//      p->printNumSamp();
       p->clear();
     }
     message += ";";

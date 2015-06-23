@@ -31,19 +31,12 @@ void Phase::sampleSignal() {
 			else {
 				delaysum += delaytemp;
 			}
-
-/* 			if(2*labs(delaytemp) < voltageperiod ) {
-				delaysum += labs(delaytemp);
-			}
-			else {
-				delaysum += (voltageperiod - labs(delaytemp));
-			}  */
 			
-			if(delaysumtemp > delaysum) {
+/* 			if(delaysumtemp > delaysum) {
 				Serial.println("Overflow on sample: ");
 				Serial.println(numsamples);
 				overflows++;
-			}
+			} */
 			numsamples++;
 		}
 			
@@ -85,7 +78,7 @@ signed long Phase::getDelay() {
 	// true delaysum = overflows * (2^31-1) + delaysum
 	delay = (signed long) ( (double) delaysum / numsamples);
 	delay += (signed long) overflows * ( (double) 2147482647 / numsamples);
-	delay %= voltage.getPeriod();
+	delay %= (signed long) voltage.getPeriod();
 	return delay;
 }
 
@@ -94,8 +87,6 @@ void Phase::printMessage() {
 	printRMS();
 	printPeriod();
 	printDelay();
-//	Serial.println(delaysum);
-	Serial.println(numsamples);
 }
 
 void Phase::printName() {
@@ -119,9 +110,4 @@ void Phase::printPeriod() {
 void Phase::printDelay() {
 	Serial.print("Delay: ");
 	Serial.println(getDelay());	
-}
-
-void Phase::printNumSamp() {
-	Serial.print("Number of Samples: ");
-	Serial.println(numsamples);
 }
