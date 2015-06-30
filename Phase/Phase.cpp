@@ -14,6 +14,7 @@ void Phase::clear() {
 	current.clear();
 	delaysum = 0;
 	numsamples = 0;
+	//overflows = 0;
 }
 
 void Phase::sampleSignal() {
@@ -25,13 +26,27 @@ void Phase::sampleSignal() {
 		unsigned long voltageperiod = voltage.getPeriod();
 		delaytemp %= voltageperiod;
 		if(voltageperiod!=0) {
-			if(delaytemp<0) {
+
+			// verified to work, but may not be a reliable proxy
+			// for power factor
+/* 			if(delaytemp<0) {
 				delaysum += (delaytemp + voltageperiod);
 			}
 			else {
 				delaysum += delaytemp;
-			}
+			} */
 			
+			// proposed as more reliable measure of power factor
+			// delaytemp is closer to 0 than to P
+			if(2*labs(delaytemp) < voltageperiod) {
+				delaysum += labs(delaytemp);
+			}
+			// delaytemp is closer to P than to 0
+			else { 
+				delaysum += (voltageperiod - labs(delaytemp));
+			}
+
+			//check if the sample has overflowed
 /* 			if(delaysumtemp > delaysum) {
 				Serial.println("Overflow on sample: ");
 				Serial.println(numsamples);
