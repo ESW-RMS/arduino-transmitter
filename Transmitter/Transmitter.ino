@@ -37,7 +37,8 @@
 #define SMS_SEND_PERIOD 3600 // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest achievable number of seconds with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
-#define PHONE_NUMBER "\"+16503055867\"" // change this to receiver phone number
+//#define PHONE_NUMBER "\"+16503055867\"" // US receiver
+#define PHONE_NUMBER "\"+6281296926345\"" // Indonesia receiver
 
 boolean flagAutoSMS;
 
@@ -77,7 +78,7 @@ void loop() {
     message += ";";
     Serial.println(message);
     
-    transmitter->sendSMSSplice(message,PHONE_NUMBER);
+//    transmitter->sendSMSSplice(message,PHONE_NUMBER);
 
     flagAutoSMS=false;
   }
