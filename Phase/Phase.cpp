@@ -77,8 +77,8 @@ unsigned long Phase::getPeriod() {
 signed long Phase::getDelay() {
 	// true delaysum = overflows * (2^31-1) + delaysum
 	delay = (signed long) ( (double) delaysum / numsamples);
-	delay += (signed long) overflows * ( (double) 2147482647 / numsamples);
-	delay %= (signed long) voltage.getPeriod();
+	//delay += (signed long) ( (double) 2147482647 / numsamples) * overflows;
+	//delay %= (signed long) voltage.getPeriod();
 	return delay;
 }
 

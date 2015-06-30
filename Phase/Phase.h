@@ -32,9 +32,8 @@ private:
 	Quantity current;
 	// double delay; // delay between voltage and current
 	signed long delay; // temporary; will be double eventually
-	unsigned long prevdelay;
 	signed long delaysum;
-	int overflows;
+	unsigned long overflows;
 	unsigned long numsamples;
 };
 
