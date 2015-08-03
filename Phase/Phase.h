@@ -14,26 +14,21 @@ public:
 	
 	String getMessage();
 	String getName();
-	//unsigned int getPort();
-	//unsigned int getRMS();
 	unsigned long getPeriod();
-	signed long getDelay();
+	signed int getPF();
 
 	void printMessage();
 	void printName();
-	//void printPort();
 	void printRMS();
 	void printPeriod();
-	void printDelay();
+	void printPF();
 	
 private:
 	String name;
 	Quantity voltage;
 	Quantity current;
-	// double delay; // delay between voltage and current
-	signed long delay; // temporary; will be double eventually
-	signed long delaysum;
-	unsigned long overflows;
+	signed int pf;
+	double pfsum;
 	unsigned long numsamples;
 };
 

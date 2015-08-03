@@ -5,78 +5,39 @@ Phase::Phase(String n, unsigned int v, unsigned int i) :
 	current("I",i)
 {
 	name = n;
-	delaysum = 0;
+	pfsum = 0;
 	numsamples = 0;
 }
 
 void Phase::clear() {
 	voltage.clear();
 	current.clear();
-	delaysum = 0;
 	numsamples = 0;
-	//overflows = 0;
+	pfsum = 0;
 }
 
 void Phase::sampleSignal() {
 	voltage.sampleSignal();
 	current.sampleSignal(); 
 	if(!voltage.getReset()&&!current.getReset()){
-		signed long delaytemp = (signed long) voltage.getMRRZ() - current.getMRRZ();	
-		signed long delaysumtemp = delaysum;
 		unsigned long voltageperiod = voltage.getPeriod();
-		delaytemp %= voltageperiod;
 		if(voltageperiod!=0) {
+			signed long delaytemp = (signed long) voltage.getMRRZ() - current.getMRRZ();
 
-			// verified to work, but may not be a reliable proxy
-			// for power factor
-/* 			if(delaytemp<0) {
-				delaysum += (delaytemp + voltageperiod);
-			}
-			else {
-				delaysum += delaytemp;
-			} */
-			
-			// proposed as more reliable measure of power factor
-			// delaytemp is closer to 0 than to P
-			if(2*labs(delaytemp) < voltageperiod) {
-				delaysum += labs(delaytemp);
-			}
-			// delaytemp is closer to P than to 0
-			else { 
-				delaysum += (voltageperiod - labs(delaytemp));
-			}
-
-			//check if the sample has overflowed
-/* 			if(delaysumtemp > delaysum) {
-				Serial.println("Overflow on sample: ");
-				Serial.println(numsamples);
-				overflows++;
-			} */
+            pfsum += cos( (double) delaytemp / voltageperiod * 2*PI);
 			numsamples++;
 		}
-			
-/* 		if(delaytemp < 0) {
-			if (-delaytemp > voltage.getPeriod()) {
-				Serial.println(delaytemp);
-				Serial.println(voltage.getPeriod());
-			}
-			delaysum += (delaytemp + voltage.getPeriod());
-		}
-		else {
-			delaysum += delaytemp;
-		}
-		numsamples++;
- */	}
+	}
 }
 
-String Phase::getMessage() { //Vrms Irms period delay
+String Phase::getMessage() { //Vrms Irms period pf
 	String message = String(voltage.getMaxAvg());
 	message += ",";
 	message += String(current.getMaxAvg());
 	message += ",";
 	message += String(voltage.getPeriod());
 	message += ",";
-	message += String(getDelay());
+	message += String(getPF());
 	message += ",";
 	return message;
 }
@@ -89,19 +50,16 @@ unsigned long Phase::getPeriod() {
 	return voltage.getPeriod();
 }
 
-signed long Phase::getDelay() {
-	// true delaysum = overflows * (2^31-1) + delaysum
-	delay = (signed long) ( (double) delaysum / numsamples);
-	//delay += (signed long) ( (double) 2147482647 / numsamples) * overflows;
-	//delay %= (signed long) voltage.getPeriod();
-	return delay;
+signed int Phase::getPF(){
+	pf = 100* ( (double) pfsum / numsamples);
+	return pf;	
 }
 
 void Phase::printMessage() {
 	printName();
 	printRMS();
 	printPeriod();
-	printDelay();
+	printPF();
 }
 
 void Phase::printName() {
@@ -122,7 +80,7 @@ void Phase::printPeriod() {
 	Serial.println(voltage.getPeriod());
 }
 
-void Phase::printDelay() {
-	Serial.print("Delay: ");
-	Serial.println(getDelay());	
+void Phase::printPF() {
+	Serial.print("Power Factor: ");
+	Serial.println(getPF());	
 }
