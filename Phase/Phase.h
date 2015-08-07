@@ -15,20 +15,20 @@ public:
 	String getMessage();
 	String getName();
 	unsigned long getPeriod();
-	signed int getPF();
+	signed long getDelay();
 
 	void printMessage();
 	void printName();
 	void printRMS();
 	void printPeriod();
-	void printPF();
+	void printDelay();
 	
 private:
 	String name;
 	Quantity voltage;
 	Quantity current;
-	signed int pf;
-	double pfsum;
+	signed long delay;
+	signed long delaysum;
 	unsigned long numsamples;
 };
 

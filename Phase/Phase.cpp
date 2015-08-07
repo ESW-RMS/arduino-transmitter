@@ -5,7 +5,7 @@ Phase::Phase(String n, unsigned int v, unsigned int i) :
 	current("I",i)
 {
 	name = n;
-	pfsum = 0;
+	delaysum = 0;
 	numsamples = 0;
 }
 
@@ -13,7 +13,7 @@ void Phase::clear() {
 	voltage.clear();
 	current.clear();
 	numsamples = 0;
-	pfsum = 0;
+	delaysum = 0;
 }
 
 void Phase::sampleSignal() {
@@ -22,22 +22,25 @@ void Phase::sampleSignal() {
 	if(!voltage.getReset()&&!current.getReset()){
 		unsigned long voltageperiod = voltage.getPeriod();
 		if(voltageperiod!=0) {
-			signed long delaytemp = (signed long) voltage.getMRRZ() - current.getMRRZ();
+            signed long delaytemp1 = (signed long) voltage.getMRRZ() - current.getMRRZ();
+            signed long delaytemp2 = voltageperiod - labs(delaytemp1);
 
-            pfsum += cos( (double) delaytemp / voltageperiod * 2*PI);
+            signed long delaytemp = (labs(delaytemp1) < labs(delaytemp2)) ? labs(delaytemp1) : labs(delaytemp2);
+
+            delaysum += delaytemp;
 			numsamples++;
 		}
 	}
 }
 
-String Phase::getMessage() { //Vrms Irms period pf
+String Phase::getMessage() { //Vrms Irms period delay
 	String message = String(voltage.getMaxAvg());
 	message += ",";
 	message += String(current.getMaxAvg());
 	message += ",";
 	message += String(voltage.getPeriod());
 	message += ",";
-	message += String(getPF());
+	message += String(getDelay());
 	message += ",";
 	return message;
 }
@@ -50,16 +53,16 @@ unsigned long Phase::getPeriod() {
 	return voltage.getPeriod();
 }
 
-signed int Phase::getPF(){
-	pf = 100* ( (double) pfsum / numsamples);
-	return pf;	
+signed long Phase::getDelay(){
+	delay = (signed long) ( (double) delaysum / numsamples);
+	return delay;
 }
 
 void Phase::printMessage() {
 	printName();
 	printRMS();
 	printPeriod();
-	printPF();
+	printDelay();
 }
 
 void Phase::printName() {
@@ -80,7 +83,7 @@ void Phase::printPeriod() {
 	Serial.println(voltage.getPeriod());
 }
 
-void Phase::printPF() {
-	Serial.print("Power Factor: ");
-	Serial.println(getPF());	
+void Phase::printDelay() {
+	Serial.print("D: ");
+	Serial.println(getDelay());	
 }
