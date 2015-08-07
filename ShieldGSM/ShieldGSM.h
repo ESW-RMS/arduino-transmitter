@@ -11,7 +11,7 @@
 #define INIT_ERROR_CODE -2
 #define INIT_TIMEOUT_CODE -3
 
-#define INIT_TIME 5000
+#define INIT_TIME 8000
 
 #define TIMEOUT_LIMIT 3
 
