@@ -80,7 +80,7 @@ void loop() {
     }
     message += ";";
     Serial.println(message);
-    
+    transmitter->verifyGSMOn();
     transmitter->sendSMSSplice(message,PHONE_NUMBER);
 
     flagAutoSMS=false;
