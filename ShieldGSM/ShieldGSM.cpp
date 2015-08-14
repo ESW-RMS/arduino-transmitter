@@ -124,7 +124,7 @@ void ShieldGSM::sendSMSSplice(String message, String phoneNumber) {
   String phoneNumberSet = "AT+CMGS=";
   phoneNumberSet += phoneNumber;  
   message += String((char)26);
-  struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = {  ATcommand("AT+CMGF=1\r",OK_RESP) , ATcommand(phoneNumberSet,"\r\n> ") , ATcommand(message,OK_RESP) };
+  struct ATcommand sendSMSCommands[NUM_SMS_COMMANDS] = {  ATcommand("AT+CMGF=1\r",OK_RESP) , ATcommand(phoneNumberSet,"> ") , ATcommand(message,OK_RESP) };
    Serial.println(message);
    Serial.println(sendSMSCommands[2].cmd); //print out the message
   executeATCommands(sendSMSCommands,NUM_SMS_COMMANDS);
