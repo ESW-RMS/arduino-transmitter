@@ -81,6 +81,7 @@ void loop() {
     message += ";";
     Serial.println(message);
     transmitter->verifyGSMOn();
+    delay(15000);
     transmitter->sendSMSSplice(message,PHONE_NUMBER);
 
     flagAutoSMS=false;
