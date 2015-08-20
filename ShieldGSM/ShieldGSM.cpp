@@ -120,6 +120,17 @@ void ShieldGSM::synchronizeLocalTime() {
   Serial.println("Synchronized to local time.");
 }
 
+void ShieldGSM::sendSMS_manual(String message, String phoneNumber){
+  String setPhone = "AT+CMGS=";
+  setPhone+=phoneNumber;
+  executeUserCommand(setPhone.c_str());
+  delay(100);
+  executeUserCommand(message.c_str());
+  delay(100);
+  executeUserCommand(String((char)26).c_str()); //the ASCII code of the ctrl+z is 26
+  delay(100);
+}
+
 void ShieldGSM::sendSMSSplice(String message, String phoneNumber) {
   String phoneNumberSet = "AT+CMGS=";
   phoneNumberSet += phoneNumber;  
