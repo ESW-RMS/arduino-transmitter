@@ -43,6 +43,7 @@ public:
 	void executeATCommands(struct ATcommand *commandslist, int numCommands);
 	void verifyGSMOn();
 	void synchronizeLocalTime();
+	void sendSMS_manual(String message, String phoneNumber);
 	void sendSMSSplice(String message, String phoneNumber);
 	void sendSMSMessage(String message, String phoneNumber);
 	
