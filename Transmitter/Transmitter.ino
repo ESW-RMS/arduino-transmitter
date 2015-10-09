@@ -81,8 +81,6 @@ void loop() {
     transmitter->verifyGSMOn();
     delay(100);
     transmitter->sendSMS_manual(message,PHONE_NUMBER);
-    delay(15000);
-    transmitter->sendSMS_manual(message,PHONE_NUMBER_2);
 
     flagAutoSMS=false;
   }
