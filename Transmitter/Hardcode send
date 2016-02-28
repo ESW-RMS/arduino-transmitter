@@ -35,11 +35,11 @@
 #define LED 13
 
 #define COMPARE_MATCH_REGISTER 62499 // [16 MHz / (1024 * 1/4 Hz) ] - 1
-#define SMS_SEND_PERIOD 3600 // in seconds, this will be 3600 = 1 hour
+#define SMS_SEND_PERIOD 180 // in seconds, this will be 3600 = 1 hour
 #define INTERRUPT_PERIOD 4 // highest achievable number of seconds with 16MHz clock and 1024 pre scale factor
 #define SMS_INTERRUPT_CYCLES SMS_SEND_PERIOD/INTERRUPT_PERIOD // remove this when testing is done
-//#define PHONE_NUMBER "\"+6281296926345\"" // Indonesia old receiver
-#define PHONE_NUMBER "\"+6281297888126\"" // Indonesia new receiver
+#define PHONE_NUMBER "\"+6281296926345\"" // Indonesia receiver
+//#define PHONE_NUMBER "\"+6281296915392\"" // Indonesia transmitter
 
 boolean flagAutoSMS;
 
@@ -78,10 +78,18 @@ void loop() {
     }
     message += ";";
     Serial.println(message);
-    transmitter->verifyGSMOn();
-    delay(100);
-    transmitter->sendSMS_manual(message,PHONE_NUMBER);
+//    transmitter->verifyGSMOn();
+  delay(100);
+  String setPhone = "AT+CMGS=";
+  setPhone+=PHONE_NUMBER;
+  transmitter->executeUserCommand(setPhone.c_str());
+  delay(100);
+  transmitter->executeUserCommand(message.c_str());
+  delay(100);
+  transmitter->executeUserCommand(String((char)26).c_str()); //the ASCII code of the ctrl+z is 26
+  delay(100);
 
+    //transmitter->sendSMSSplice(message,PHONE_NUMBER);
     flagAutoSMS=false;
   }
   transmitter->pollUserCommand();
@@ -119,4 +127,3 @@ void initializeTimerInterrupts() {
   
   Serial.println("Timer interrupts initialized.");
 }
-
